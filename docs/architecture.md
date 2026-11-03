@@ -108,7 +108,8 @@ Two layers, both enforced on the server.
 
 **Role gate.** `app.requireRole([...])` rejects a request whose role is not in
 the list. Merchant routes accept `MERCHANT_OWNER`, `MERCHANT_ADMIN`,
-`MERCHANT_OPERATOR` and `MERCHANT_VIEWER`; write routes drop the viewer.
+`MERCHANT_MANAGER`, `MERCHANT_SUPPORT` and `MERCHANT_VIEWER`; read-only
+roles cannot write.
 
 **Tenant gate.** `app.resolveMerchantId(request)` returns the merchant from
 the *session*, never from the request. A merchant user therefore cannot reach
@@ -152,21 +153,18 @@ Each provider has its own parser. A parser pulls out what it can:
 
 The provider reference carries the most weight because it is the only field
 that makes a notification traceable back to the provider. Reaching the 0.9
-auto-accept threshold therefore requires an amount, a reference and a sender
-name — exactly the bar for a notification that can be trusted without a human
-looking at it. The response reports which fields were missing, so the reason
-for a low score is visible.
+confidence threshold does not verify a real payment. The response reports
+which fields were missing, so the reason for a low score is visible.
 
 Two outcomes bypass the scoring entirely, because the provider has already
 said what happened and there is nothing for a human to decide:
 
-- a **provider-reported failure** → confidence 1.0, recorded as `FAILED`;
-- an **outgoing debit** → confidence 1.0, recorded as `FAILED`.
+- a **provider-reported failure** → confidence 1.0;
+- an **outgoing debit** → confidence 1.0.
 
 The threshold lives in `AUTO_ACCEPT_CONFIDENCE` (default `0.9`):
 
-- **at or above** → recorded as `SUCCESS`, or `FAILED` if the notification
-  reports a failed transaction;
+- **at or above** → recorded as `PENDING`;
 - **below** → recorded as `REVIEW` and put in the review queue, where a
   merchant accepts or rejects it.
 

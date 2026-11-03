@@ -77,7 +77,7 @@ export function Dropdown({
         <div
           role="menu"
           className={cn(
-            "absolute z-40 mt-1.5 min-w-44 overflow-hidden rounded-lg border border-neutral-200 bg-white p-1 shadow-overlay",
+            "absolute z-40 mt-1.5 min-w-44 overflow-hidden rounded-lg border border-line bg-surface p-1 shadow-overlay",
             align === "right" ? "right-0" : "left-0",
           )}
         >
@@ -97,8 +97,8 @@ export function Dropdown({
                   "flex w-full items-center gap-2.5 rounded-md px-2.5 py-2 text-left text-[13px] font-medium transition-colors",
                   "disabled:cursor-not-allowed disabled:opacity-50",
                   item.variant === "danger"
-                    ? "text-danger-600 hover:bg-danger-50"
-                    : "text-ink-soft hover:bg-neutral-100",
+                    ? "text-danger-fg hover:bg-danger-tint"
+                    : "text-ink-soft hover:bg-elevated",
                 )}
               >
                 {Icon ? <Icon className="size-4 shrink-0" aria-hidden="true" /> : null}

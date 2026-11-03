@@ -1,4 +1,3 @@
-import { toNumber } from "../db.js";
 import type {
   AccountStatus,
   DeviceStatus,
@@ -126,6 +125,8 @@ export interface TransactionDto {
   merchantName?: string;
   provider: PaymentProvider;
   amount: number;
+  amountMinor: number;
+  currency: string;
   customerName: string | null;
   customerPhone: string | null;
   status: TransactionStatus;
@@ -158,7 +159,9 @@ export function serializeTransaction(
       ? { merchantName: transaction.merchant.businessName }
       : {}),
     provider: transaction.provider,
-    amount: toNumber(transaction.amount),
+    amount: transaction.amountMinor / 100,
+    amountMinor: transaction.amountMinor,
+    currency: transaction.currency,
     customerName: transaction.customerName,
     customerPhone: transaction.customerPhone,
     status: transaction.status,

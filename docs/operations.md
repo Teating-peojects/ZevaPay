@@ -107,10 +107,10 @@ Every seeded account uses the password `ZevaPay#2026`.
 | `owner@gulshan.test`      | `MERCHANT_OWNER`  | Gulshan Fresh Market    | `ACTIVE`       |
 | `owner@banani.test`       | `MERCHANT_OWNER`  | Banani Textiles         | `PENDING_REVIEW` |
 | `owner@mirpur.test`       | `MERCHANT_OWNER`  | Mirpur Wholesale Hub    | `SUSPENDED`    |
-| `operator@dhanmondi.test` | `MERCHANT_OPERATOR` | Dhanmondi Electronics | `ACTIVE`       |
+| `operator@dhanmondi.test` | `MERCHANT_MANAGER` | Dhanmondi Electronics | `ACTIVE`       |
 | `viewer@dhanmondi.test`   | `MERCHANT_VIEWER`  | Dhanmondi Electronics  | `ACTIVE`       |
 | `admin@gulshan.test`      | `MERCHANT_ADMIN`  | Gulshan Fresh Market    | `ACTIVE`       |
-| `admin@zevapay.test`      | `PLATFORM_ADMIN`  | —                       | —              |
+| `admin@zevapay.test`      | `SUPER_ADMIN`  | —                       | —              |
 
 A `PENDING_REVIEW` merchant can sign in and look at its data, but every write
 is refused until an administrator approves it. A `SUSPENDED` merchant cannot

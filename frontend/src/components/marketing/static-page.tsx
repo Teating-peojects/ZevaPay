@@ -1,7 +1,6 @@
 import * as React from "react";
 import Link from "next/link";
-import { SiteHeader } from "@/components/marketing/site-header";
-import { SiteFooter } from "@/components/marketing/site-footer";
+import { PublicLayout } from "@/components/marketing/public-layout";
 
 export interface StaticSection {
   heading: string;
@@ -22,55 +21,49 @@ export function StaticPage({
   sections: StaticSection[];
 }) {
   return (
-    <div className="flex min-h-full flex-col bg-white">
-      <SiteHeader />
+    <PublicLayout>
+      <section className="border-b border-line bg-elevated">
+        <div className="mx-auto max-w-3xl px-4 py-12 sm:px-6 sm:py-14">
+          <h1 className="text-2xl font-semibold tracking-tight text-ink sm:text-3xl">
+            {title}
+          </h1>
+          <p className="mt-3 text-base leading-relaxed text-ink-soft sm:text-lg">{intro}</p>
+        </div>
+      </section>
 
-      <main className="flex-1">
-        <section className="border-b border-neutral-200 bg-neutral-50">
-          <div className="mx-auto max-w-3xl px-4 py-16 sm:px-6 sm:py-20">
-            <h1 className="text-3xl font-semibold tracking-tight text-ink sm:text-4xl">
-              {title}
-            </h1>
-            <p className="mt-4 text-lg leading-relaxed text-ink-soft">{intro}</p>
+      <section className="border-b border-line">
+        <div className="mx-auto max-w-3xl px-4 py-12 sm:px-6 sm:py-14">
+          <div className="flex flex-col gap-8">
+            {sections.map((section) => (
+              <div key={section.heading}>
+                <h2 className="text-lg font-semibold tracking-tight text-ink">
+                  {section.heading}
+                </h2>
+                <p className="mt-2 text-[15px] leading-relaxed text-ink-soft">
+                  {section.body}
+                </p>
+              </div>
+            ))}
           </div>
-        </section>
 
-        <section className="border-b border-neutral-200">
-          <div className="mx-auto max-w-3xl px-4 py-16 sm:px-6 sm:py-20">
-            <div className="flex flex-col gap-10">
-              {sections.map((section) => (
-                <div key={section.heading}>
-                  <h2 className="text-lg font-semibold tracking-tight text-ink">
-                    {section.heading}
-                  </h2>
-                  <p className="mt-3 text-[15px] leading-relaxed text-ink-soft">
-                    {section.body}
-                  </p>
-                </div>
-              ))}
-            </div>
-
-            <div className="mt-12 rounded-lg border border-neutral-200 bg-neutral-50 px-5 py-5">
-              <p className="text-[13px] leading-relaxed text-ink-muted">
-                This page describes the ZevaPay service as it operates today.
-                It is a summary for your convenience and does not replace a
-                formal legal agreement.
-              </p>
-            </div>
-
-            <div className="mt-8">
-              <Link
-                href="/"
-                className="text-[13px] font-medium text-brand-700 underline underline-offset-2 hover:text-brand-800"
-              >
-                Back to home
-              </Link>
-            </div>
+          <div className="mt-12 rounded-lg border border-line bg-elevated px-5 py-5">
+            <p className="text-[13px] leading-relaxed text-ink-muted">
+              This page describes the ZevaPay service as it operates today.
+              It is a summary for your convenience and does not replace a
+              formal legal agreement.
+            </p>
           </div>
-        </section>
-      </main>
 
-      <SiteFooter />
-    </div>
+          <div className="mt-8">
+            <Link
+              href="/"
+              className="text-[13px] font-medium text-brand-link underline underline-offset-2 hover:text-brand-link-hover"
+            >
+              Back to home
+            </Link>
+          </div>
+        </div>
+      </section>
+    </PublicLayout>
   );
 }

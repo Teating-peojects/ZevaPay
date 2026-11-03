@@ -21,10 +21,10 @@ export function StatCard({
   className?: string;
 }) {
   const toneStyles = {
-    neutral: "bg-neutral-100 text-ink-soft",
-    success: "bg-success-50 text-success-600",
-    warning: "bg-warning-50 text-warning-600",
-    info: "bg-info-50 text-info-600",
+    neutral: "bg-elevated text-ink-soft",
+    success: "bg-success-tint text-success-fg",
+    warning: "bg-warning-tint text-warning-fg",
+    info: "bg-info-tint text-info-fg",
   };
 
   return (

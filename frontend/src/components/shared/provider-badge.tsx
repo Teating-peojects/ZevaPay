@@ -1,10 +1,10 @@
 import { getProvider } from "@/data/providers";
 import type { PaymentProvider } from "@/types/api";
+import { ProviderLogo } from "@/components/shared/provider-logo";
 import { cn } from "@/lib/utils";
 
 /**
- * Compact provider identifier. Uses a colored chip with the provider's
- * two-letter mark rather than a third-party logo.
+ * Compact provider identifier using the provider's original logo artwork.
  */
 export function ProviderBadge({
   provider,
@@ -26,16 +26,7 @@ export function ProviderBadge({
       )}
       style={{ backgroundColor: meta.tint, color: meta.textColor }}
     >
-      <span
-        className={cn(
-          "inline-flex shrink-0 items-center justify-center rounded font-bold text-white",
-          size === "sm" ? "size-4 text-[9px]" : "size-5 text-[10px]",
-        )}
-        style={{ backgroundColor: meta.color }}
-        aria-hidden="true"
-      >
-        {meta.shortName}
-      </span>
+      <ProviderLogo provider={provider} size={size} />
       {meta.name}
     </span>
   );

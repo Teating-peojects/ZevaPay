@@ -104,11 +104,11 @@ export function Modal({
         aria-labelledby="modal-title"
         aria-describedby={description ? "modal-description" : undefined}
         className={cn(
-          "relative z-10 flex max-h-[90vh] w-full flex-col overflow-hidden rounded-t-2xl bg-white shadow-modal sm:rounded-xl",
+          "relative z-10 flex max-h-[90vh] w-full flex-col overflow-hidden rounded-t-2xl bg-surface shadow-modal sm:rounded-xl",
           sizeStyles[size],
         )}
       >
-        <div className="flex items-start justify-between gap-4 border-b border-neutral-200 px-5 py-4">
+        <div className="flex items-start justify-between gap-4 border-b border-line px-5 py-4">
           <div className="min-w-0">
             <h2 id="modal-title" className="text-base font-semibold text-ink">
               {title}
@@ -123,7 +123,7 @@ export function Modal({
             type="button"
             onClick={onClose}
             aria-label="Close dialog"
-            className="-mt-1 -mr-1 rounded-md p-1.5 text-ink-muted transition-colors hover:bg-neutral-100 hover:text-ink"
+            className="-mt-1 -mr-1 rounded-md p-1.5 text-ink-muted transition-colors hover:bg-elevated hover:text-ink"
           >
             <X className="size-4" aria-hidden="true" />
           </button>
@@ -136,7 +136,7 @@ export function Modal({
         ) : null}
 
         {footer ? (
-          <div className="flex items-center justify-end gap-2 border-t border-neutral-200 bg-neutral-50 px-5 py-3">
+          <div className="flex items-center justify-end gap-2 border-t border-line bg-elevated px-5 py-3">
             {footer}
           </div>
         ) : null}

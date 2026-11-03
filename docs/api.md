@@ -31,10 +31,10 @@ curl -b jar.txt http://localhost:4000/api/v1/merchant/overview
 
 | Role                | Can do                                                   |
 | ------------------- | -------------------------------------------------------- |
-| `PLATFORM_ADMIN`    | Everything in `/api/v1/admin/*`                           |
+| `SUPER_ADMIN`      | Everything in `/api/v1/admin/*`                           |
 | `MERCHANT_OWNER`    | Read + write within their own merchant                   |
 | `MERCHANT_ADMIN`    | Read + write within their own merchant                   |
-| `MERCHANT_OPERATOR` | Read + write within their own merchant                   |
+| `MERCHANT_MANAGER`  | Read + write within their own merchant                   |
 | `MERCHANT_VIEWER`   | Read only within their own merchant                      |
 
 A merchant user can only ever see their own merchant's records — the merchant
@@ -201,14 +201,31 @@ The code is **single-use** and expires after 15 minutes.
 { "decision": "ACCEPT", "note": "Confirmed against the counter slip" }
 ```
 
-`decision` is `ACCEPT` or `REJECT`. Accepting sets the status to `SUCCESS`;
+`decision` is `ACCEPT` or `REJECT`. Accepting sets the status to `CONFIRMED`;
 rejecting sets it to `FAILED`.
 
 ---
 
+## Payments and customers
+
+Merchant payment and customer routes require a permission assigned through the
+role/permission tables. Tenant IDs come from the authenticated session.
+
+| Method | Path | Description |
+| ------ | ---- | ----------- |
+| GET | `/merchant/payments` | Paginated payments; optional `status` |
+| POST | `/merchant/payments` | Create a payment using `amountMinor` and `currency` |
+| GET | `/merchant/payments/:id` | Payment with attempts and customer details |
+| PATCH | `/merchant/payments/:id/status` | Validated non-confirming status transition |
+| GET | `/merchant/customers` | Paginated customer list; optional `q` |
+| POST | `/merchant/customers` | Create a merchant-scoped customer |
+| GET | `/merchant/customers/:id` | Customer and recent payments |
+| PATCH | `/merchant/customers/:id` | Update a merchant-scoped customer |
+| DELETE | `/merchant/customers/:id` | Delete a merchant-scoped customer |
+
 ## Admin — `/api/v1/admin`
 
-Requires `PLATFORM_ADMIN`.
+Requires `SUPER_ADMIN` or `ADMIN` plus the `admin:manage` permission.
 
 | Method | Path                            | Description                          |
 | ------ | ------------------------------- | ------------------------------------ |
@@ -286,16 +303,16 @@ The response says what the parser made of it:
   "duplicate": false,
   "transactionId": "clx...",
   "reference": "TXN-591589",
-  "status": "SUCCESS",
+  "status": "PENDING",
   "confidence": 0.9,
-  "autoAccepted": true,
+  "autoAccepted": false,
+  "verificationRequired": true,
   "missing": ["occurredAt"]
 }
 ```
 
-- `status` is `SUCCESS` when the confidence is at or above
-  `AUTO_ACCEPT_CONFIDENCE`, `FAILED` when the notification reports a failure,
-  and `REVIEW` when the confidence is too low.
+- `status` is `PENDING` when parser confidence meets the routing threshold
+  and `REVIEW` when parser confidence is low. Parsing never confirms a payment.
 - `missing` lists the fields the parser could not find. Each one costs
   confidence.
 - A repeated notification returns `{ "duplicate": true }` and does not create a

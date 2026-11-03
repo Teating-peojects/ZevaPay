@@ -51,8 +51,8 @@ export function ConfirmDialog({
       }
     >
       <div className="flex gap-3">
-        <span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-danger-50">
-          <TriangleAlert className="size-4 text-danger-600" aria-hidden="true" />
+        <span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-danger-tint">
+          <TriangleAlert className="size-4 text-danger-fg" aria-hidden="true" />
         </span>
         <p className="text-sm leading-relaxed text-ink-soft">{description}</p>
       </div>

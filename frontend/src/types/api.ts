@@ -122,7 +122,8 @@ export interface ApiAuditLog {
   action: string;
   actorName: string | null;
   merchantName?: string | null;
-  metadata: unknown;
+  /** Extra detail the API attached to the entry, when there was any. */
+  metadata?: unknown;
   ipAddress: string | null;
   createdAt: string;
 }
@@ -218,6 +219,13 @@ export interface AdminSystemInfo {
   environment: string;
 }
 
+/**
+ * A sensitive action recorded on the platform.
+ *
+ * The backend stores an append-only trail with a fixed set of action names.
+ * There is no severity on the record, so the console derives the emphasis of
+ * an entry from the action itself rather than pretending the API said so.
+ */
 export interface SessionResponse {
   user: ApiUser;
   merchant: ApiMerchant | null;

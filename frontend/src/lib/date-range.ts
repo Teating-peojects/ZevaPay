@@ -4,16 +4,37 @@
  * Shared by the table component and the server-table hook so both agree on
  * the vocabulary.
  */
-export type DateRange = "all" | "today" | "7d" | "30d";
+export type DateRange = "all" | "today" | "7d" | "30d" | "90d";
 
 export const DATE_RANGE_OPTIONS: { value: DateRange; label: string }[] = [
   { value: "all", label: "All time" },
   { value: "today", label: "Today" },
   { value: "7d", label: "Last 7 days" },
   { value: "30d", label: "Last 30 days" },
+  { value: "90d", label: "Last 90 days" },
 ];
 
 const DAY_MS = 24 * 60 * 60 * 1000;
+
+/**
+ * How many days a relative range covers.
+ *
+ * "All time" has no bound, so it reports `null`.
+ */
+export function dateRangeDays(range: DateRange): number | null {
+  switch (range) {
+    case "all":
+      return null;
+    case "today":
+      return 1;
+    case "7d":
+      return 7;
+    case "30d":
+      return 30;
+    case "90d":
+      return 90;
+  }
+}
 
 /**
  * Converts a range into the `from`/`to` bounds the API expects. `undefined`
@@ -31,6 +52,6 @@ export function dateRangeBounds(
     return { from: start.toISOString(), to: new Date(now).toISOString() };
   }
 
-  const days = range === "7d" ? 7 : 30;
+  const days = dateRangeDays(range) ?? 30;
   return { from: new Date(now - days * DAY_MS).toISOString() };
 }

@@ -13,7 +13,7 @@ function DetailRow({
   children: React.ReactNode;
 }) {
   return (
-    <div className="flex flex-col gap-0.5 border-b border-neutral-100 py-3 last:border-b-0 sm:flex-row sm:items-center sm:justify-between sm:gap-6">
+    <div className="flex flex-col gap-0.5 border-b border-line py-3 last:border-b-0 sm:flex-row sm:items-center sm:justify-between sm:gap-6">
       <span className="text-[13px] text-ink-muted">{label}</span>
       <span className="text-[13px] font-medium text-ink sm:text-right">
         {children}
@@ -45,7 +45,7 @@ export function DeviceDetailsModal({
         <button
           type="button"
           onClick={onClose}
-          className="rounded-lg border border-neutral-300 bg-white px-3.5 py-2 text-sm font-medium text-ink transition-colors hover:bg-neutral-50"
+          className="rounded-lg border border-line-strong bg-surface px-3.5 py-2 text-sm font-medium text-ink transition-colors hover:bg-elevated"
         >
           Close
         </button>
@@ -53,7 +53,7 @@ export function DeviceDetailsModal({
     >
       {device ? (
         <div className="flex flex-col gap-4">
-          <div className="flex flex-col gap-1 rounded-lg border border-neutral-200 bg-neutral-50 px-4 py-4">
+          <div className="flex flex-col gap-1 rounded-lg border border-line bg-elevated px-4 py-4">
             <span className="text-[13px] text-ink-muted">Device name</span>
             <span className="text-lg font-semibold tracking-tight text-ink">
               {device.name}

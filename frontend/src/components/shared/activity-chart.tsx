@@ -13,9 +13,9 @@ import {
 import type { ActivityPoint } from "@/types/api";
 
 const SERIES = [
-  { key: "success", label: "Success", color: "#10b981" },
-  { key: "pending", label: "Pending", color: "#f59e0b" },
-  { key: "failed", label: "Failed", color: "#ef4444" },
+  { key: "success", label: "Confirmed from SMS", color: "#10b981" },
+  { key: "pending", label: "Awaiting verification", color: "#f59e0b" },
+  { key: "failed", label: "Verification failed", color: "#ef4444" },
 ] as const;
 
 /**

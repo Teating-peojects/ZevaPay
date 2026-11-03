@@ -4,6 +4,7 @@ import { prisma } from "../db.js";
 import { ForbiddenError, UnauthorizedError } from "../lib/errors.js";
 import { ACCESS_COOKIE } from "../lib/tokens.js";
 import type { AccessTokenPayload } from "../lib/tokens.js";
+import { canAccessMerchant } from "../lib/tenant-access.js";
 
 export type { UserRole } from "../generated/prisma/enums.js";
 
@@ -28,10 +29,11 @@ declare module "fastify" {
       request: FastifyRequest,
       explicitMerchantId?: string | null,
     ) => Promise<string>;
+    requirePermission: (permission: string) => (request: FastifyRequest, reply: FastifyReply) => Promise<void>;
   }
 }
 
-const PLATFORM_ROLES = ["PLATFORM_ADMIN"];
+const PLATFORM_ROLES = ["SUPER_ADMIN", "ADMIN", "SUPPORT"];
 
 async function authPlugin(app: FastifyInstance): Promise<void> {
   app.decorate(
@@ -98,6 +100,17 @@ async function authPlugin(app: FastifyInstance): Promise<void> {
       },
   );
 
+  app.decorate("requirePermission", (permission: string) => async (request: FastifyRequest) => {
+    if (!request.auth) throw new UnauthorizedError();
+    const role = await prisma.role.findUnique({
+      where: { name: request.auth.role },
+      select: { permissions: { select: { permission: { select: { key: true } } } } },
+    });
+    if (!role?.permissions.some((entry) => entry.permission.key === permission)) {
+      throw new ForbiddenError("You do not have permission to perform this action.");
+    }
+  });
+
   app.decorate(
     "resolveMerchantId",
     async (request: FastifyRequest, explicitMerchantId?: string | null) => {
@@ -106,7 +119,7 @@ async function authPlugin(app: FastifyInstance): Promise<void> {
       const isPlatformAdmin = PLATFORM_ROLES.includes(request.auth.role);
 
       if (explicitMerchantId) {
-        if (!isPlatformAdmin && request.auth.merchantId !== explicitMerchantId) {
+        if (!canAccessMerchant(request.auth.role, request.auth.merchantId, explicitMerchantId)) {
           throw new ForbiddenError("You do not have access to this merchant.");
         }
         return explicitMerchantId;

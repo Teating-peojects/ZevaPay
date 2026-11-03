@@ -243,7 +243,7 @@ export default function AdminSettingsPage() {
         </CardHeader>
         <CardContent>
           <div className="flex gap-3">
-            <span className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-neutral-100">
+            <span className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-elevated">
               <Info className="size-4 text-ink-soft" aria-hidden="true" />
             </span>
             <p className="text-[13px] leading-relaxed text-ink-soft">

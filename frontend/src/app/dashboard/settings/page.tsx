@@ -4,7 +4,15 @@ import * as React from "react";
 import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { KeyRound, Monitor, Pencil } from "lucide-react";
+import {
+  Code2,
+  Globe,
+  KeyRound,
+  Monitor,
+  Pencil,
+  ShieldCheck,
+  User,
+} from "lucide-react";
 import { PageHeader } from "@/components/layout/page-header";
 import { Alert } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
@@ -16,7 +24,9 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Input, Label } from "@/components/ui/form";
+import { DemoBadge } from "@/components/ui/demo-badge";
 import { Modal } from "@/components/ui/modal";
+import { Tabs, TabPanel } from "@/components/ui/tabs";
 import { useToast } from "@/components/ui/toast";
 import { formatDateTime } from "@/lib/format";
 import { apiFetch, ApiError } from "@/lib/api-client";
@@ -27,7 +37,12 @@ import {
   type MerchantProfileValues,
 } from "@/lib/schemas";
 import type { ApiMerchant, ApiSession, ApiUser } from "@/types/api";
-import { ApiKeysCard } from "./api-keys-card";
+import {
+  mockFetchMerchantSettings,
+  mockUpdateMerchantSettings,
+  type MockMerchantSettings,
+} from "@/mock";
+import { RegionalPreferences } from "./regional-preferences";
 
 export default function SettingsPage() {
   const { toast } = useToast();
@@ -38,6 +53,10 @@ export default function SettingsPage() {
   const [loading, setLoading] = React.useState(true);
   const [passwordOpen, setPasswordOpen] = React.useState(false);
   const [passwordError, setPasswordError] = React.useState<string | null>(null);
+  const [tab, setTab] = React.useState("profile");
+  const [merchantSettings, setMerchantSettings] = React.useState<MockMerchantSettings>(
+    () => mockFetchMerchantSettings(),
+  );
 
   const profileForm = useForm<MerchantProfileValues>({
     resolver: zodResolver(merchantProfileSchema),
@@ -105,8 +124,18 @@ export default function SettingsPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [reloadToken]);
 
-  async function onSaveProfile(values: MerchantProfileValues) {
-    try {
+  /**
+   * Saves the business and regional preferences.
+   *
+   * The backend has no settings model for these, so they go to the demo
+   * layer. The `RegionalPreferences` component says so where the merchant
+   * saves them.
+   */
+  function handleSavePreferences(patch: Partial<MockMerchantSettings>) {
+    setMerchantSettings(mockUpdateMerchantSettings(patch));
+  }
+
+  async function onSaveProfile(values: MerchantProfileValues) {    try {
       await apiFetch("/api/v1/auth/profile", {
         method: "PATCH",
         body: {
@@ -203,9 +232,29 @@ export default function SettingsPage() {
       <PageHeader
         title="Settings"
         description="Manage your profile, security, and API access."
+        actions={
+          <DemoBadge label="Business preferences are demo" />
+        }
+      />
+
+      <Alert tone="info" title="Live data">
+        Your profile, password and API keys are stored on the API. The business
+        preferences beside them are demo values kept in this browser.
+      </Alert>
+
+      <Tabs
+        value={tab}
+        onChange={setTab}
+        items={[
+          { id: "profile", label: "Profile", icon: User },
+          { id: "preferences", label: "Business & region", icon: Globe },
+          { id: "security", label: "Security", icon: ShieldCheck },
+          { id: "api", label: "API access", icon: Code2 },
+        ]}
       />
 
       {/* Profile */}
+      <TabPanel id="profile" value={tab}>
       <Card>
         <CardHeader>
           <CardTitle>Profile</CardTitle>
@@ -280,8 +329,18 @@ export default function SettingsPage() {
           </form>
         </CardContent>
       </Card>
+      </TabPanel>
+
+      {/* Business and regional preferences */}
+      <TabPanel id="preferences" value={tab}>
+        <RegionalPreferences
+          settings={merchantSettings}
+          onSave={handleSavePreferences}
+        />
+      </TabPanel>
 
       {/* Security */}
+      <TabPanel id="security" value={tab}>
       <Card>
         <CardHeader>
           <CardTitle>Security</CardTitle>
@@ -292,7 +351,7 @@ export default function SettingsPage() {
         <CardContent className="flex flex-col gap-6">
           <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
             <div className="flex gap-3">
-              <span className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-neutral-100">
+              <span className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-elevated">
                 <KeyRound
                   className="size-4 text-ink-soft"
                   aria-hidden="true"
@@ -315,8 +374,8 @@ export default function SettingsPage() {
             </Button>
           </div>
 
-          <div className="rounded-lg border border-neutral-200">
-            <div className="flex items-center gap-3 border-b border-neutral-200 px-4 py-3">
+          <div className="rounded-lg border border-line">
+            <div className="flex items-center gap-3 border-b border-line px-4 py-3">
               <Monitor
                 className="size-4 shrink-0 text-ink-muted"
                 aria-hidden="true"
@@ -328,7 +387,7 @@ export default function SettingsPage() {
                 No active sessions were found.
               </p>
             ) : (
-              <ul className="divide-y divide-neutral-200">
+              <ul className="divide-y divide-line">
                 {sessions.map((session) => (
                   <li
                     key={session.id}
@@ -348,9 +407,33 @@ export default function SettingsPage() {
           </div>
         </CardContent>
       </Card>
+      </TabPanel>
 
-      {/* API configuration */}
-      <ApiKeysCard />
+      {/* API access — the keys themselves live on the developers page. */}
+      <TabPanel id="api" value={tab}>
+      <Card>
+        <CardHeader>
+          <CardTitle>API access</CardTitle>
+          <CardDescription>
+            Keys, usage and request history for your integration.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <p className="text-[13px] leading-relaxed text-ink-muted">
+            Your API keys are managed on the API &amp; Developers page. The
+            full secret is shown once, when the key is created.
+          </p>
+          <Button
+            variant="outline"
+            onClick={() => router.push("/dashboard/developers")}
+            className="shrink-0"
+          >
+            <Code2 className="size-4" aria-hidden="true" />
+            Open API &amp; Developers
+          </Button>
+        </CardContent>
+      </Card>
+      </TabPanel>
 
       {/* Change password modal */}
       <Modal

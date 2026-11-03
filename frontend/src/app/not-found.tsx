@@ -4,8 +4,8 @@ import { Button } from "@/components/ui/button";
 
 export default function NotFound() {
   return (
-    <div className="flex min-h-full flex-col bg-white">
-      <header className="border-b border-neutral-200 px-4 py-5 sm:px-6">
+    <div className="flex min-h-full flex-col bg-surface">
+      <header className="border-b border-line px-4 py-5 sm:px-6">
         <div className="mx-auto max-w-6xl">
           <Logo href="/" />
         </div>
@@ -13,7 +13,7 @@ export default function NotFound() {
 
       <main className="flex flex-1 items-center justify-center px-4 py-20 sm:px-6">
         <div className="max-w-md text-center">
-          <p className="font-mono text-[13px] font-semibold text-brand-700">
+          <p className="font-mono text-[13px] font-semibold text-brand-link">
             404
           </p>
           <h1 className="mt-3 text-3xl font-semibold tracking-tight text-ink">

@@ -5,28 +5,42 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Eye, EyeOff } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Alert } from "@/components/ui/alert";
 import { Checkbox, Input, Label } from "@/components/ui/form";
+import { PasswordField } from "@/components/auth/password-field";
+import { DemoRoleSwitch } from "@/components/auth/demo-role-switch";
+import { useDemoRole } from "@/hooks/use-demo-role";
 import { loginSchema, type LoginValues } from "@/lib/schemas";
 import { ApiError, apiFetch } from "@/lib/api-client";
+import { DEMO_ACCOUNTS, isDemoMode } from "@/lib/demo-mode";
 import type { SessionResponse } from "@/types/api";
 
 export function LoginForm() {
   const router = useRouter();
-  const [showPassword, setShowPassword] = React.useState(false);
+  const demoRole = useDemoRole();
   const [formError, setFormError] = React.useState<string | null>(null);
 
   const {
     register,
     handleSubmit,
     setError,
+    setValue,
     formState: { errors, isSubmitting },
   } = useForm<LoginValues>({
     resolver: zodResolver(loginSchema),
     defaultValues: { email: "", password: "", remember: true },
   });
+
+  // The demo switch pre-fills the seeded account. It never signs in by
+  // itself — the visitor still presses the button.
+  const demoAccount = demoRole ? DEMO_ACCOUNTS[demoRole] : null;
+
+  React.useEffect(() => {
+    if (!demoAccount) return;
+    setValue("email", demoAccount.email);
+    setValue("password", demoAccount.password);
+  }, [demoAccount, setValue]);
 
   async function onSubmit(values: LoginValues) {
     setFormError(null);
@@ -89,34 +103,18 @@ export function LoginForm() {
             </Label>
             <Link
               href="/forgot-password"
-              className="mb-1.5 text-[13px] font-medium text-brand-700 transition-colors hover:text-brand-800"
+              className="mb-1.5 text-[13px] font-medium text-brand-link transition-colors hover:text-brand-link-hover"
             >
               Forgot password?
             </Link>
           </div>
-          <div className="relative">
-            <Input
-              id="password"
-              type={showPassword ? "text" : "password"}
-              autoComplete="current-password"
-              placeholder="••••••••"
-              error={errors.password?.message}
-              className="pr-10"
-              {...register("password")}
-            />
-            <button
-              type="button"
-              onClick={() => setShowPassword((value) => !value)}
-              aria-label={showPassword ? "Hide password" : "Show password"}
-              className="absolute top-0 right-0 flex h-10 w-10 items-center justify-center text-ink-muted transition-colors hover:text-ink"
-            >
-              {showPassword ? (
-                <EyeOff className="size-4" aria-hidden="true" />
-              ) : (
-                <Eye className="size-4" aria-hidden="true" />
-              )}
-            </button>
-          </div>
+          <PasswordField
+            id="password"
+            autoComplete="current-password"
+            placeholder="••••••••"
+            error={errors.password?.message}
+            {...register("password")}
+          />
         </div>
 
         <Checkbox
@@ -137,19 +135,31 @@ export function LoginForm() {
         </Button>
       </div>
 
-      <div className="mt-6 rounded-lg border border-neutral-200 bg-neutral-50 p-4">
-        <p className="text-[13px] font-medium text-ink-soft">
-          Running the local demo?
-        </p>
-        <p className="mt-1 text-[13px] leading-relaxed text-ink-muted">
-          Sign in with a seeded account —{" "}
-          <code className="font-mono text-[12px]">owner@dhanmondi.test</code>{" "}
-          for a merchant, or{" "}
-          <code className="font-mono text-[12px]">admin@zevapay.test</code> for
-          the platform console. The shared password is{" "}
-          <code className="font-mono text-[12px]">ZevaPay#2026</code>.
-        </p>
-      </div>
+      {isDemoMode() ? (
+        <div className="mt-6 flex flex-col gap-3">
+          <DemoRoleSwitch />
+          {demoAccount ? (
+            <p className="text-[12px] leading-relaxed text-ink-muted">
+              The {demoAccount.label.toLowerCase()} account is filled in. Sign
+              in to open the {demoAccount.destination === "/admin" ? "admin console" : "merchant dashboard"}.
+            </p>
+          ) : null}
+        </div>
+      ) : (
+        <div className="mt-6 rounded-lg border border-line bg-elevated p-4">
+          <p className="text-[13px] font-medium text-ink-soft">
+            Running the local demo?
+          </p>
+          <p className="mt-1 text-[13px] leading-relaxed text-ink-muted">
+            Sign in with a seeded account —{" "}
+            <code className="font-mono text-[12px]">owner@dhanmondi.test</code>{" "}
+            for a merchant, or{" "}
+            <code className="font-mono text-[12px]">admin@zevapay.test</code> for
+            the platform console. The shared password is{" "}
+            <code className="font-mono text-[12px]">ZevaPay#2026</code>.
+          </p>
+        </div>
+      )}
     </form>
   );
 }

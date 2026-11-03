@@ -23,10 +23,10 @@ export function LiveIndicator({
 
   const dotClass =
     status === "live"
-      ? "bg-success-500"
+      ? "bg-success-tint0"
       : status === "offline"
         ? "bg-neutral-400"
-        : "bg-warning-500 animate-pulse";
+        : "bg-warning-tint0 animate-pulse";
 
   return (
     <span

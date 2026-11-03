@@ -2,17 +2,27 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import {
   ArrowRight,
+  Bell,
   Code2,
+  CreditCard,
+  FileText,
   LayoutDashboard,
+  Link2,
+  Lock,
   MonitorSmartphone,
   Receipt,
+  ShieldCheck,
   Wallet,
 } from "lucide-react";
 import { SiteHeader } from "@/components/marketing/site-header";
 import { SiteFooter } from "@/components/marketing/site-footer";
+import { Faq } from "@/components/marketing/faq";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { DemoNotice } from "@/components/ui/demo-badge";
 import { PROVIDER_LIST } from "@/data/providers";
+import { ProviderLogo } from "@/components/shared/provider-logo";
+import { MOCK_PLANS } from "@/mock";
 
 export const metadata: Metadata = {
   title: "ZevaPay — Simple Payment Management",
@@ -51,6 +61,12 @@ const features = [
     description:
       "Issue scoped API keys from your settings and read your transaction history programmatically, from your own reporting scripts or systems.",
   },
+  {
+    icon: Link2,
+    title: "Payment Links and Invoices",
+    description:
+      "Create a link or an invoice for a fixed amount, share it as a link or a QR code, and watch it move from sent to paid.",
+  },
 ];
 
 const steps = [
@@ -76,30 +92,99 @@ const steps = [
   },
 ];
 
+const security = [
+  {
+    icon: Lock,
+    title: "No PIN, no OTP, no money movement",
+    body: "ZevaPay reads the notification your provider already sends to your phone. It never asks for your PIN, never handles your OTP, and never moves your money.",
+  },
+  {
+    icon: ShieldCheck,
+    title: "Masked by default",
+    body: "Account numbers are masked in the API response itself, so a full number is never sent to a browser. API keys show their value once and are masked afterwards.",
+  },
+  {
+    icon: FileText,
+    title: "Clear about what a record means",
+    body: "A record parsed from a notification is a claim from the message, not a settlement confirmation. ZevaPay labels it as confirmed from SMS, never as provider-verified.",
+  },
+  {
+    icon: Bell,
+    title: "You decide what reaches you",
+    body: "Choose which events notify you and where — email, dashboard, SMS, Telegram, Discord, Slack, or a webhook to your own endpoint.",
+  },
+];
+
+const faqItems = [
+  {
+    question: "Does ZevaPay hold or move my money?",
+    answer:
+      "No. ZevaPay records payment notifications that your provider already sends to your phone. The money stays in your own bKash, Nagad, Rocket, or Upay account, exactly as it would without ZevaPay. ZevaPay is a record-keeping and automation tool, not a payment service.",
+  },
+  {
+    question: "What does my Android device do?",
+    answer:
+      "It runs the ZevaPay SMS Bridge app, which reads payment notifications from your provider and sends them to your dashboard. The device stays at your counter or shop. You can disconnect it at any time, and you can run more than one.",
+  },
+  {
+    question: "Is a recorded payment actually settled?",
+    answer:
+      "Not always, and ZevaPay does not pretend otherwise. When a notification is parsed successfully the record is labelled as confirmed from SMS — the message matched, but it was not checked against the provider's own system. Records that do not match cleanly are held for your review instead of being counted as paid.",
+  },
+  {
+    question: "Do you need my bank or provider password?",
+    answer:
+      "No. ZevaPay never asks for a provider password, a PIN, or a one-time passcode. It only reads the notification that arrives on the device you paired.",
+  },
+  {
+    question: "Can I use the API from my own website?",
+    answer:
+      "Yes. Issue a scoped API key from your developer page and read your transaction history from your own storefront or reporting scripts. Every key can be revoked on its own, and usage is visible to you.",
+  },
+  {
+    question: "How much does it cost?",
+    answer:
+      "ZevaPay does not take a percentage of what you collect. Plans differ by limits — transactions, devices, payment links, team members, and API requests — rather than by volume of money. The pricing page shows sample plan content; the billing page in your dashboard shows the plan you are actually on.",
+  },
+  {
+    question: "Is ZevaPay approved by the Bangladesh Bank?",
+    answer:
+      "ZevaPay is a software tool for merchants. It is not a payment service provider, and it does not hold, transmit, or settle funds. Providers set their own fees and terms for the accounts you connect.",
+  },
+];
+
+function formatPrice(value: number | null): string {
+  if (value === null) return "Custom";
+  if (value === 0) return "Free";
+  return `৳${value.toLocaleString("en-US")}`;
+}
+
 export default function HomePage() {
+  const previewPlans = MOCK_PLANS.slice(0, 3);
+
   return (
-    <div className="flex min-h-full flex-col bg-white">
+    <div className="flex min-h-full flex-col bg-canvas">
       <SiteHeader />
 
-      <main className="flex-1">
+      <main className="public-page-enter flex-1">
         {/* Hero */}
-        <section className="border-b border-neutral-200 bg-neutral-50">
-          <div className="mx-auto max-w-6xl px-4 py-20 sm:px-6 sm:py-28">
+        <section className="border-b border-line bg-elevated">
+          <div className="mx-auto max-w-6xl px-4 py-16 sm:px-6 sm:py-20">
             <div className="max-w-3xl">
               <Badge tone="brand">Simple Payment Management</Badge>
 
-              <h1 className="mt-6 text-4xl font-semibold tracking-tight text-ink sm:text-5xl sm:leading-[1.1]">
+              <h1 className="mt-4 text-3xl font-semibold tracking-tight text-ink sm:text-4xl sm:leading-[1.15]">
                 Manage Your Payments. Simply.
               </h1>
 
-              <p className="mt-6 max-w-2xl text-lg leading-relaxed text-ink-soft">
+              <p className="mt-4 max-w-2xl text-base leading-relaxed text-ink-soft sm:text-lg">
                 ZevaPay connects your mobile financial services accounts to an
                 Android device, then records every payment notification so you
                 can see what came in, when it arrived, and which account it
                 belongs to.
               </p>
 
-              <div className="mt-9 flex flex-col gap-3 sm:flex-row">
+              <div className="mt-7 flex flex-col gap-3 sm:flex-row">
                 <Link href="/register">
                   <Button size="lg" className="w-full sm:w-auto">
                     Get started
@@ -124,47 +209,47 @@ export default function HomePage() {
             </div>
 
             {/* Product preview */}
-            <div className="mt-16 rounded-xl border border-neutral-200 bg-white p-1.5 shadow-overlay">
-              <div className="overflow-hidden rounded-lg border border-neutral-200 bg-neutral-50">
-                <div className="flex items-center gap-1.5 border-b border-neutral-200 bg-white px-4 py-3">
-                  <span className="size-2.5 rounded-full bg-neutral-300" />
-                  <span className="size-2.5 rounded-full bg-neutral-300" />
-                  <span className="size-2.5 rounded-full bg-neutral-300" />
+            <div className="mt-16 rounded-xl border border-line bg-surface p-1.5 shadow-overlay">
+              <div className="overflow-hidden rounded-lg border border-line bg-elevated">
+                <div className="flex items-center gap-1.5 border-b border-line bg-surface px-4 py-3">
+                  <span className="size-2.5 rounded-full bg-line-strong" />
+                  <span className="size-2.5 rounded-full bg-line-strong" />
+                  <span className="size-2.5 rounded-full bg-line-strong" />
                   <span className="ml-3 text-[12px] font-medium text-ink-faint">
                     app.zevapay.com/dashboard/transactions
                   </span>
                 </div>
 
-                <div className="mx-4 my-4 overflow-hidden rounded-lg border border-neutral-200 bg-white">
+                <div className="mx-4 my-4 overflow-hidden rounded-lg border border-line bg-surface">
                   {[
                     {
                       ref: "TXN-100245",
                       method: "bKash",
                       amount: "৳2,450",
-                      status: "Success",
+                      status: "Confirmed from SMS",
                     },
                     {
                       ref: "TXN-100244",
                       method: "Nagad",
                       amount: "৳890",
-                      status: "Pending",
+                      status: "Awaiting verification",
                     },
                     {
                       ref: "TXN-100243",
                       method: "bKash",
                       amount: "৳12,750",
-                      status: "Review",
+                      status: "Needs review",
                     },
                     {
                       ref: "TXN-100242",
                       method: "Rocket",
                       amount: "৳560",
-                      status: "Failed",
+                      status: "Verification failed",
                     },
                   ].map((row) => (
                     <div
                       key={row.ref}
-                      className="flex items-center gap-4 border-b border-neutral-200 px-4 py-2.5 last:border-b-0"
+                      className="flex items-center gap-4 border-b border-line px-4 py-2.5 last:border-b-0"
                     >
                       <span className="font-mono text-[12px] text-ink-muted">
                         {row.ref}
@@ -187,14 +272,11 @@ export default function HomePage() {
         </section>
 
         {/* Features */}
-        <section
-          id="features"
-          className="scroll-mt-20 border-b border-neutral-200"
-        >
-          <div className="mx-auto max-w-6xl px-4 py-20 sm:px-6 sm:py-24">
+        <section id="features" className="scroll-mt-20 border-b border-line">
+          <div className="mx-auto max-w-6xl px-4 py-14 sm:px-6 sm:py-16">
             <div className="max-w-2xl">
-              <h2 className="text-3xl font-semibold tracking-tight text-ink sm:text-4xl">
-                Built around the five things you actually do.
+              <h2 className="text-2xl font-semibold tracking-tight text-ink sm:text-3xl">
+                Built around the six things you actually do.
               </h2>
               <p className="mt-4 text-lg leading-relaxed text-ink-soft">
                 ZevaPay is deliberately focused. Each screen answers one clear
@@ -208,11 +290,11 @@ export default function HomePage() {
                 return (
                   <div
                     key={feature.title}
-                    className="rounded-xl border border-neutral-200 bg-white p-6"
+                    className="rounded-xl border border-line bg-surface p-6"
                   >
-                    <span className="flex size-10 items-center justify-center rounded-lg bg-brand-50">
+                    <span className="flex size-10 items-center justify-center rounded-lg bg-brand-tint">
                       <Icon
-                        className="size-5 text-brand-700"
+                        className="size-5 text-brand-link"
                         aria-hidden="true"
                       />
                     </span>
@@ -226,17 +308,27 @@ export default function HomePage() {
                 );
               })}
             </div>
+
+            <div className="mt-10">
+              <Link
+                href="/features"
+                className="inline-flex items-center gap-1.5 text-sm font-medium text-brand-link transition-colors hover:text-brand-link-hover"
+              >
+                See every feature
+                <ArrowRight className="size-4" aria-hidden="true" />
+              </Link>
+            </div>
           </div>
         </section>
 
         {/* How it works */}
         <section
           id="how-it-works"
-          className="scroll-mt-20 border-b border-neutral-200 bg-neutral-50"
+          className="scroll-mt-20 border-b border-line bg-elevated"
         >
-          <div className="mx-auto max-w-6xl px-4 py-20 sm:px-6 sm:py-24">
+          <div className="mx-auto max-w-6xl px-4 py-14 sm:px-6 sm:py-16">
             <div className="max-w-2xl">
-              <h2 className="text-3xl font-semibold tracking-tight text-ink sm:text-4xl">
+              <h2 className="text-2xl font-semibold tracking-tight text-ink sm:text-3xl">
                 Four steps from signup to a clear record.
               </h2>
               <p className="mt-4 text-lg leading-relaxed text-ink-soft">
@@ -248,9 +340,9 @@ export default function HomePage() {
               {steps.map((item, index) => (
                 <li
                   key={item.title}
-                  className="flex flex-col rounded-xl border border-neutral-200 bg-white p-6"
+                  className="flex flex-col rounded-xl border border-line bg-surface p-6"
                 >
-                  <span className="flex size-8 items-center justify-center rounded-full bg-brand-50 text-[13px] font-semibold text-brand-700">
+                  <span className="flex size-8 items-center justify-center rounded-full bg-brand-tint text-[13px] font-semibold text-brand-link">
                     {index + 1}
                   </span>
                   <h3 className="mt-4 text-[15px] font-semibold text-ink">
@@ -268,11 +360,11 @@ export default function HomePage() {
         {/* Supported methods */}
         <section
           id="supported"
-          className="scroll-mt-20 border-b border-neutral-200"
+          className="scroll-mt-20 border-b border-line"
         >
-          <div className="mx-auto max-w-6xl px-4 py-20 sm:px-6 sm:py-24">
+          <div className="mx-auto max-w-6xl px-4 py-14 sm:px-6 sm:py-16">
             <div className="max-w-2xl">
-              <h2 className="text-3xl font-semibold tracking-tight text-ink sm:text-4xl">
+              <h2 className="text-2xl font-semibold tracking-tight text-ink sm:text-3xl">
                 Works with the methods you already use.
               </h2>
               <p className="mt-4 text-lg leading-relaxed text-ink-soft">
@@ -286,15 +378,9 @@ export default function HomePage() {
               {PROVIDER_LIST.map((provider) => (
                 <div
                   key={provider.id}
-                  className="flex items-center gap-3 rounded-xl border border-neutral-200 bg-white px-5 py-5"
+                  className="flex items-center gap-3 rounded-xl border border-line bg-surface px-5 py-5"
                 >
-                  <span
-                    className="inline-flex size-9 shrink-0 items-center justify-center rounded-lg text-[11px] font-bold text-white"
-                    style={{ backgroundColor: provider.color }}
-                    aria-hidden="true"
-                  >
-                    {provider.shortName}
-                  </span>
+                  <ProviderLogo provider={provider.id} size="lg" />
                   <span className="text-[15px] font-semibold text-ink">
                     {provider.name}
                   </span>
@@ -304,11 +390,258 @@ export default function HomePage() {
           </div>
         </section>
 
+        {/* Security */}
+        <section
+          id="security"
+          className="scroll-mt-20 border-b border-line bg-elevated"
+        >
+          <div className="mx-auto max-w-6xl px-4 py-14 sm:px-6 sm:py-16">
+            <div className="max-w-2xl">
+              <h2 className="text-2xl font-semibold tracking-tight text-ink sm:text-3xl">
+                Honest about what it can and cannot do.
+              </h2>
+              <p className="mt-4 text-lg leading-relaxed text-ink-soft">
+                A payment tool should tell you plainly what it does with your
+                money and your credentials. Here is exactly that.
+              </p>
+            </div>
+
+            <div className="mt-12 grid gap-6 sm:grid-cols-2">
+              {security.map((item) => {
+                const Icon = item.icon;
+                return (
+                  <div
+                    key={item.title}
+                    className="flex gap-4 rounded-xl border border-line bg-surface p-6"
+                  >
+                    <span className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-accent-soft">
+                      <Icon
+                        className="size-5 text-accent-fg"
+                        aria-hidden="true"
+                      />
+                    </span>
+                    <div className="min-w-0">
+                      <h3 className="text-[15px] font-semibold text-ink">
+                        {item.title}
+                      </h3>
+                      <p className="mt-2 text-sm leading-relaxed text-ink-muted">
+                        {item.body}
+                      </p>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        </section>
+
+        {/* Pricing preview */}
+        <section id="pricing" className="scroll-mt-20 border-b border-line">
+          <div className="mx-auto max-w-6xl px-4 py-14 sm:px-6 sm:py-16">
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+              <div className="max-w-2xl">
+                <h2 className="text-2xl font-semibold tracking-tight text-ink sm:text-3xl">
+                  Priced on limits, not on your turnover.
+                </h2>
+                <p className="mt-4 text-lg leading-relaxed text-ink-soft">
+                  ZevaPay does not take a percentage of what you collect. Plans
+                  differ by how many transactions, devices, links and team
+                  members you use.
+                </p>
+              </div>
+              <Link href="/pricing">
+                <Button variant="outline">Full pricing</Button>
+              </Link>
+            </div>
+
+            <DemoNotice className="mt-8" title="Sample plan content">
+              The prices below are configurable sample content for this
+              prototype, not a published price list. The plan you are actually
+              on and its limits are shown in the billing page of your
+              dashboard.
+            </DemoNotice>
+
+            <div className="mt-8 grid gap-6 md:grid-cols-3">
+              {previewPlans.map((plan) => (
+                <div
+                  key={plan.id}
+                  className="flex flex-col rounded-xl border border-line bg-surface p-6"
+                >
+                  <h3 className="text-base font-semibold text-ink">
+                    {plan.name}
+                  </h3>
+                  <p className="mt-2 min-h-10 text-[13px] leading-relaxed text-ink-muted">
+                    {plan.description}
+                  </p>
+                  <p className="mt-5 text-2xl font-semibold tracking-tight text-ink">
+                    {formatPrice(plan.monthlyPrice)}
+                  </p>
+                  <p className="mt-0.5 text-[12px] text-ink-muted">
+                    {plan.monthlyPrice === 0
+                      ? "forever"
+                      : "per month, billed yearly"}
+                  </p>
+                  <ul className="mt-6 flex-1 space-y-2">
+                    {plan.features.slice(0, 4).map((feature) => (
+                      <li
+                        key={feature}
+                        className="text-[13px] leading-relaxed text-ink-soft"
+                      >
+                        {feature}
+                      </li>
+                    ))}
+                  </ul>
+                  <div className="mt-6">
+                    <Link href="/register">
+                      <Button
+                        variant={plan.popular ? "primary" : "outline"}
+                        className="w-full"
+                      >
+                        Get started
+                      </Button>
+                    </Link>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        {/* FAQ */}
+        <section id="faq" className="scroll-mt-20 border-b border-line bg-elevated">
+          <div className="mx-auto max-w-6xl px-4 py-14 sm:px-6 sm:py-16">
+            <div className="max-w-2xl">
+              <h2 className="text-2xl font-semibold tracking-tight text-ink sm:text-3xl">
+                Questions worth answering plainly.
+              </h2>
+              <p className="mt-4 text-lg leading-relaxed text-ink-soft">
+                The ones merchants ask first, answered without hedging.
+              </p>
+            </div>
+
+            <Faq items={faqItems} className="mt-10 max-w-3xl" />
+
+            <div className="mt-8 max-w-3xl">
+              <Link
+                href="/contact"
+                className="inline-flex items-center gap-1.5 text-sm font-medium text-brand-link transition-colors hover:text-brand-link-hover"
+              >
+                Ask something else
+                <ArrowRight className="size-4" aria-hidden="true" />
+              </Link>
+            </div>
+          </div>
+        </section>
+
+        {/* Contact */}
+        <section id="contact" className="scroll-mt-20 border-b border-line">
+          <div className="mx-auto max-w-6xl px-4 py-14 sm:px-6 sm:py-16">
+            <div className="grid gap-10 lg:grid-cols-2 lg:gap-16">
+              <div className="max-w-xl">
+                <Badge tone="brand">Contact</Badge>
+                <h2 className="mt-4 text-2xl font-semibold tracking-tight text-ink sm:text-3xl">
+                  Something not working?
+                </h2>
+                <p className="mt-4 text-lg leading-relaxed text-ink-soft">
+                  If a device will not pair, a payment is missing, or you are
+                  not sure what a record means, tell us what you were doing
+                  and we will tell you what we can see.
+                </p>
+
+                <dl className="mt-8 flex flex-col gap-5">
+                  <div>
+                    <dt className="text-[13px] font-semibold text-ink">
+                      Support email
+                    </dt>
+                    <dd className="mt-1 text-[14px] text-ink-muted">
+                      support@zevapay.com
+                    </dd>
+                  </div>
+                  <div>
+                    <dt className="text-[13px] font-semibold text-ink">
+                      Support hours
+                    </dt>
+                    <dd className="mt-1 text-[14px] leading-relaxed text-ink-muted">
+                      Monday to Saturday, 9:00 AM to 8:00 PM Bangladesh Standard
+                      Time (UTC+6).
+                    </dd>
+                  </div>
+                  <div>
+                    <dt className="text-[13px] font-semibold text-ink">
+                      What to include
+                    </dt>
+                    <dd className="mt-1 text-[14px] leading-relaxed text-ink-muted">
+                      Your business name, the device ID from the dashboard, and
+                      the Android version if the issue is with pairing.
+                    </dd>
+                  </div>
+                </dl>
+
+                <div className="mt-8 flex flex-col gap-3 sm:flex-row">
+                  <Link href="/contact">
+                    <Button variant="outline" className="w-full sm:w-auto">
+                      Contact support
+                    </Button>
+                  </Link>
+                  <Link href="/status">
+                    <Button variant="ghost" className="w-full sm:w-auto">
+                      Check service status
+                    </Button>
+                  </Link>
+                </div>
+              </div>
+
+              <div className="rounded-xl border border-line bg-surface p-6 sm:p-8">
+                <CreditCard className="size-6 text-brand-link" aria-hidden="true" />
+                <h3 className="mt-4 text-base font-semibold text-ink">
+                  Before you write
+                </h3>
+                <p className="mt-2 text-[14px] leading-relaxed text-ink-muted">
+                  Most questions are answered by these three screens:
+                </p>
+                <ul className="mt-4 flex flex-col gap-2.5">
+                  {[
+                    {
+                      href: "/#how-it-works",
+                      label: "How it works",
+                      detail: "Connecting an account and pairing a device.",
+                    },
+                    {
+                      href: "/#supported",
+                      label: "Supported methods",
+                      detail: "Which providers ZevaPay reads notifications from.",
+                    },
+                    {
+                      href: "/#security",
+                      label: "Security",
+                      detail: "What ZevaPay does and does not touch.",
+                    },
+                  ].map((item) => (
+                    <li key={item.href}>
+                      <Link
+                        href={item.href}
+                        className="block rounded-lg border border-line bg-elevated px-4 py-3 transition-colors hover:border-line-strong"
+                      >
+                        <span className="block text-[14px] font-medium text-ink">
+                          {item.label}
+                        </span>
+                        <span className="mt-0.5 block text-[13px] text-ink-muted">
+                          {item.detail}
+                        </span>
+                      </Link>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            </div>
+          </div>
+        </section>
+
         {/* CTA */}
         <section>
-          <div className="mx-auto max-w-6xl px-4 py-20 sm:px-6 sm:py-24">
-            <div className="rounded-xl border border-neutral-200 bg-brand-800 px-6 py-14 text-center sm:px-14">
-              <h2 className="text-3xl font-semibold tracking-tight text-white sm:text-4xl">
+          <div className="mx-auto max-w-6xl px-4 py-14 sm:px-6 sm:py-16">
+            <div className="rounded-xl border border-line bg-brand-solid px-6 py-14 text-center sm:px-14">
+              <h2 className="text-2xl font-semibold tracking-tight text-white sm:text-3xl">
                 Start managing your payments today.
               </h2>
               <p className="mx-auto mt-4 max-w-xl text-lg leading-relaxed text-brand-100">
@@ -319,7 +652,7 @@ export default function HomePage() {
                 <Link href="/register">
                   <Button
                     size="lg"
-                    className="w-full bg-white text-brand-800 hover:bg-brand-50 sm:w-auto"
+                    className="w-full bg-surface text-brand-link hover:bg-brand-tint sm:w-auto"
                   >
                     Get started
                   </Button>
@@ -328,7 +661,7 @@ export default function HomePage() {
                   <Button
                     size="lg"
                     variant="outline"
-                    className="w-full border-brand-400 bg-transparent text-white hover:bg-brand-700 sm:w-auto"
+                    className="w-full border-white/40 bg-transparent text-white hover:bg-white/10 sm:w-auto"
                   >
                     Login
                   </Button>

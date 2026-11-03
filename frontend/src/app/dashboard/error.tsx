@@ -18,8 +18,8 @@ export default function DashboardError({
   return (
     <div className="flex min-h-[60vh] items-center justify-center">
       <div className="max-w-md text-center">
-        <div className="mx-auto flex size-11 items-center justify-center rounded-full bg-danger-50">
-          <TriangleAlert className="size-5 text-danger-600" aria-hidden="true" />
+        <div className="mx-auto flex size-11 items-center justify-center rounded-full bg-danger-tint">
+          <TriangleAlert className="size-5 text-danger-fg" aria-hidden="true" />
         </div>
         <h1 className="mt-4 text-lg font-semibold text-ink">
           Something went wrong

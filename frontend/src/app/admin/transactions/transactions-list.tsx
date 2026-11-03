@@ -60,7 +60,7 @@ export function AdminTransactionsList() {
         title: decision === "ACCEPT" ? "Payment accepted" : "Payment rejected",
         description:
           decision === "ACCEPT"
-            ? `${transaction.reference} was recorded as a successful payment.`
+            ? `${transaction.reference} was recorded as confirmed from a notification. It has not been checked against the provider's own records.`
             : `${transaction.reference} was marked as failed.`,
         tone: decision === "ACCEPT" ? "success" : "warning",
       });
@@ -147,7 +147,7 @@ export function AdminTransactionsList() {
           <div className="flex items-center gap-3">
             <LiveIndicator status={liveStatus} />
             {table.total > 0 ? (
-              <div className="flex items-center gap-2 rounded-lg border border-neutral-200 bg-white px-3.5 py-2">
+              <div className="flex items-center gap-2 rounded-lg border border-line bg-surface px-3.5 py-2">
                 <span className="text-[13px] text-ink-muted">Total</span>
                 <span className="text-[13px] font-semibold text-ink">
                   {table.total}
@@ -170,10 +170,10 @@ export function AdminTransactionsList() {
             id: "status",
             label: "All statuses",
             options: [
-              { value: "SUCCESS", label: "Success" },
-              { value: "PENDING", label: "Pending" },
-              { value: "REVIEW", label: "Review" },
-              { value: "FAILED", label: "Failed" },
+              { value: "SUCCESS", label: "Confirmed from SMS" },
+              { value: "PENDING", label: "Awaiting verification" },
+              { value: "REVIEW", label: "Needs review" },
+              { value: "FAILED", label: "Verification failed" },
             ],
           },
           {

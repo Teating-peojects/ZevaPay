@@ -1,4 +1,6 @@
 import { Badge } from "@/components/ui/badge";
+import { Tooltip } from "@/components/ui/tooltip";
+import { statusDisplay, toSpecStatus } from "@/mock/status";
 import type {
   AccountStatus,
   DeviceStatus,
@@ -11,26 +13,28 @@ import type {
  * a record can never render as an unknown value.
  */
 
-const transactionConfig: Record<
-  TransactionStatus,
-  { label: string; tone: "success" | "warning" | "info" | "danger" }
-> = {
-  SUCCESS: { label: "Success", tone: "success" },
-  PENDING: { label: "Pending", tone: "warning" },
-  REVIEW: { label: "Review", tone: "info" },
-  FAILED: { label: "Failed", tone: "danger" },
-};
-
+/**
+ * The status badge for a transaction read from the API.
+ *
+ * The wording comes from `@/mock/status`, the same vocabulary the payments
+ * screen uses, so a live transaction and a sample one read identically.
+ * That matters for the rule this product depends on: a parser match is not
+ * proof of payment, so a confirmed record reads "Confirmed from SMS" and
+ * never "Success" or "Verified".
+ */
 export function TransactionStatusBadge({
   status,
 }: {
   status: TransactionStatus;
 }) {
-  const config = transactionConfig[status];
+  const display = statusDisplay(toSpecStatus(status));
+
   return (
-    <Badge tone={config.tone} dot>
-      {config.label}
-    </Badge>
+    <Tooltip content={display.description}>
+      <Badge tone={display.tone} dot>
+        {display.label}
+      </Badge>
+    </Tooltip>
   );
 }
 

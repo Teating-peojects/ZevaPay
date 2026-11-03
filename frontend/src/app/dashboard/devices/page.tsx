@@ -5,6 +5,7 @@ import { MonitorSmartphone, PlugZap } from "lucide-react";
 import { PageHeader } from "@/components/layout/page-header";
 import { DeviceStatusBadge } from "@/components/shared/status-badge";
 import { DataTable, type Column } from "@/components/shared/data-table";
+import { Alert } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { useToast } from "@/components/ui/toast";
@@ -131,6 +132,14 @@ export default function DevicesPage() {
           </Button>
         }
       />
+
+      <Alert tone="info" title="Live data">
+        The devices below are the ones registered against this merchant on the
+        API. SMS forwarding is simulated in this prototype: no message is read
+        from a phone and nothing is forwarded. The pairing code below is a
+        real, single-use code issued by the API, but no device reports
+        notifications to it yet.
+      </Alert>
 
       <DataTable
         columns={columns}

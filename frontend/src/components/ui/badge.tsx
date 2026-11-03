@@ -10,12 +10,12 @@ export type BadgeTone =
   | "brand";
 
 const toneStyles: Record<BadgeTone, string> = {
-  neutral: "bg-neutral-100 text-ink-soft ring-neutral-200",
-  success: "bg-success-50 text-success-700 ring-success-100",
-  warning: "bg-warning-50 text-warning-700 ring-warning-100",
-  danger: "bg-danger-50 text-danger-700 ring-danger-100",
-  info: "bg-info-50 text-info-700 ring-info-100",
-  brand: "bg-brand-50 text-brand-700 ring-brand-100",
+  neutral: "bg-elevated text-ink-soft ring-line",
+  success: "bg-success-tint text-success-text ring-success-line",
+  warning: "bg-warning-tint text-warning-text ring-warning-line",
+  danger: "bg-danger-tint text-danger-text ring-danger-line",
+  info: "bg-info-tint text-info-text ring-info-line",
+  brand: "bg-brand-tint text-brand-link ring-brand-line",
 };
 
 export interface BadgeProps extends React.HTMLAttributes<HTMLSpanElement> {

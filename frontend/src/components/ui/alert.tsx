@@ -11,20 +11,20 @@ type AlertTone = "info" | "success" | "warning" | "danger";
 
 const toneStyles: Record<AlertTone, { wrap: string; icon: string }> = {
   info: {
-    wrap: "border-info-100 bg-info-50 text-info-700",
-    icon: "text-info-600",
+    wrap: "border-info-line bg-info-tint text-info-text",
+    icon: "text-info-fg",
   },
   success: {
-    wrap: "border-success-100 bg-success-50 text-success-700",
-    icon: "text-success-600",
+    wrap: "border-success-line bg-success-tint text-success-text",
+    icon: "text-success-fg",
   },
   warning: {
-    wrap: "border-warning-100 bg-warning-50 text-warning-700",
-    icon: "text-warning-600",
+    wrap: "border-warning-line bg-warning-tint text-warning-text",
+    icon: "text-warning-fg",
   },
   danger: {
-    wrap: "border-danger-100 bg-danger-50 text-danger-700",
-    icon: "text-danger-600",
+    wrap: "border-danger-line bg-danger-tint text-danger-text",
+    icon: "text-danger-fg",
   },
 };
 

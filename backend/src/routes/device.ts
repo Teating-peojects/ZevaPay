@@ -164,11 +164,9 @@ export async function registerDeviceRoutes(app: FastifyInstance): Promise<void> 
 
       const { result } = parseNotification(body.message, { expectedProvider });
 
-      const autoAccept = result.confidence >= config.autoAcceptConfidence;
-      const status = autoAccept
-        ? result.outcome === "payment_received"
-          ? "SUCCESS"
-          : "FAILED"
+      // A parsed SMS is unverified evidence, regardless of parser confidence.
+      const status = result.outcome === "payment_received" && result.confidence >= config.autoAcceptConfidence
+        ? "PENDING"
         : "REVIEW";
 
       const occurredAt =
@@ -201,7 +199,8 @@ export async function registerDeviceRoutes(app: FastifyInstance): Promise<void> 
           accountId: device.connectedAccountId,
           deviceId: device.id,
           provider: result.provider,
-          amount: result.amount ?? 0,
+          amountMinor: Math.round((result.amount ?? 0) * 100),
+          currency: "BDT",
           customerName: result.customerName,
           customerPhone: result.customerPhone,
           status,
@@ -232,7 +231,8 @@ export async function registerDeviceRoutes(app: FastifyInstance): Promise<void> 
         reference: transaction.reference,
         status,
         confidence: result.confidence,
-        autoAccepted: autoAccept,
+        autoAccepted: false,
+        verificationRequired: true,
         missing: result.missing,
         reasons: result.reasons,
       });

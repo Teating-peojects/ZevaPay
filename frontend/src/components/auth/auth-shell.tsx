@@ -18,9 +18,9 @@ export function AuthShell({
   footer?: React.ReactNode;
 }) {
   return (
-    <div className="flex min-h-full flex-col lg:flex-row">
+    <div className="flex min-h-screen flex-col lg:flex-row">
       {/* Brand panel */}
-      <div className="hidden bg-brand-800 lg:flex lg:w-[46%] lg:flex-col lg:justify-between lg:p-12 xl:w-[50%]">
+      <div className="hidden bg-brand-solid lg:flex lg:w-[46%] lg:flex-col lg:justify-between lg:p-12 xl:w-[50%]">
         <div>
           <Logo href="/" variant="light" />
         </div>
@@ -35,7 +35,7 @@ export function AuthShell({
             what still needs attention.
           </p>
 
-          <ul className="mt-10 space-y-3 border-t border-brand-700 pt-8">
+          <ul className="mt-10 space-y-3 border-t border-brand-solid pt-8">
             {[
               "Connect bKash, Nagad, Rocket, and Upay accounts.",
               "Pair an Android SMS Bridge device.",
@@ -58,7 +58,7 @@ export function AuthShell({
       </div>
 
       {/* Form panel */}
-      <div className="flex flex-1 flex-col bg-white">
+      <div className="flex flex-1 flex-col bg-surface">
         <header className="flex items-center justify-between px-6 py-6 sm:px-10 lg:justify-end">
           <div className="lg:hidden">
             <Logo href="/" />
@@ -83,7 +83,7 @@ export function AuthShell({
             <div className="mt-8">{children}</div>
 
             {footer ? (
-              <div className="mt-8 border-t border-neutral-200 pt-6 text-center text-sm text-ink-muted">
+              <div className="mt-8 border-t border-line pt-6 text-center text-sm text-ink-muted">
                 {footer}
               </div>
             ) : null}

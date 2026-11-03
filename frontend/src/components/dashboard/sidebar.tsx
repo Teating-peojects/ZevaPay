@@ -3,16 +3,30 @@
 import * as React from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { ChevronDown, LogOut, X } from "lucide-react";
+import {
+  ChevronDown,
+  LogOut,
+  PanelLeftClose,
+  PanelLeftOpen,
+  X,
+} from "lucide-react";
 import { Logo } from "@/components/brand/logo";
 import { Avatar } from "@/components/ui/avatar";
 import { navIcons } from "@/components/dashboard/nav-icons";
 import { useToast } from "@/components/ui/toast";
 import { apiFetch } from "@/lib/api-client";
 import type { NavSection } from "@/lib/nav-config";
+import {
+  readStored,
+  subscribeToStored,
+  writeStored,
+} from "@/lib/stored-state";
 import { cn } from "@/lib/utils";
 
 export type { NavItem, NavSection } from "@/lib/nav-config";
+
+/** Where the collapsed state of the desktop rail is remembered. */
+const STORAGE_KEY = "zp-sidebar-collapsed";
 
 export interface SidebarUser {
   name: string;
@@ -22,15 +36,34 @@ export interface SidebarUser {
 }
 
 /**
- * Responsive dashboard sidebar. On mobile it becomes an off-canvas drawer
- * controlled by the parent shell.
+ * Responsive dashboard sidebar.
+ *
+ * On large screens it can be collapsed to a narrow icon rail, which is
+ * remembered in `localStorage`. On small screens it becomes an off-canvas
+ * drawer controlled by the parent shell.
  */
+/** Subscribes to changes of the stored collapsed state. */
+function subscribeCollapsed(listener: () => void): () => void {
+  return subscribeToStored(STORAGE_KEY, listener);
+}
+
+/** Whether the rail is collapsed right now. */
+function getCollapsedSnapshot(): boolean {
+  return readStored(STORAGE_KEY, "0") === "1";
+}
+
+/** The rail starts expanded on the server render. */
+function getCollapsedServerSnapshot(): boolean {
+  return false;
+}
+
 export function Sidebar({
   sections,
   variant,
   user,
   workspaceName,
   onNavigate,
+  onCollapseChange,
   mobile = false,
   open = false,
 }: {
@@ -39,6 +72,8 @@ export function Sidebar({
   user: SidebarUser;
   workspaceName: string;
   onNavigate?: () => void;
+  /** Lets the shell widen the content column when the rail collapses. */
+  onCollapseChange?: (collapsed: boolean) => void;
   mobile?: boolean;
   open?: boolean;
 }) {
@@ -48,6 +83,20 @@ export function Sidebar({
   const [menuOpen, setMenuOpen] = React.useState(false);
 
   const root = variant === "admin" ? "/admin" : "/dashboard";
+
+  // The collapsed state lives in localStorage, so it is read through an
+  // external store rather than copied into state inside an effect.
+  const collapsed = React.useSyncExternalStore(
+    subscribeCollapsed,
+    getCollapsedSnapshot,
+    getCollapsedServerSnapshot,
+  );
+
+  function toggleCollapsed() {
+    const next = !collapsed;
+    writeStored(STORAGE_KEY, next ? "1" : "0");
+    onCollapseChange?.(next);
+  }
 
   function isActive(href: string) {
     if (href === root) return pathname === href;
@@ -71,59 +120,87 @@ export function Sidebar({
     router.refresh();
   }
 
+  const showLabels = mobile || !collapsed;
+
   return (
     <div
       className={cn(
-        "flex h-full flex-col border-r border-neutral-200 bg-white",
+        "flex h-full flex-col border-r border-line bg-surface transition-[width] duration-200",
         mobile
           ? cn(
               "fixed inset-y-0 left-0 z-50 w-72 transition-transform duration-200",
               open ? "translate-x-0" : "-translate-x-full",
             )
-          : "w-64 shrink-0",
+          : cn("shrink-0", collapsed ? "w-[68px]" : "w-64"),
       )}
     >
       {/* Header */}
-      <div className="flex h-16 shrink-0 items-center justify-between border-b border-neutral-200 px-4">
-        <Logo href="/" showTagline={!mobile} />
+      <div
+        className={cn(
+          "flex h-16 shrink-0 items-center border-b border-line px-4",
+          showLabels ? "justify-between" : "justify-center",
+        )}
+      >
+        {showLabels ? (
+          <Logo href="/" showTagline={!mobile} />
+        ) : (
+          <Logo href="/" />
+        )}
+
         {mobile ? (
           <button
             type="button"
             onClick={onNavigate}
             aria-label="Close navigation"
-            className="inline-flex size-8 items-center justify-center rounded-lg text-ink-muted transition-colors hover:bg-neutral-100 hover:text-ink"
+            className="inline-flex size-8 items-center justify-center rounded-lg text-ink-muted transition-colors hover:bg-elevated hover:text-ink"
           >
             <X className="size-5" aria-hidden="true" />
           </button>
-        ) : null}
+        ) : (
+          <button
+            type="button"
+            onClick={toggleCollapsed}
+            aria-label={collapsed ? "Expand navigation" : "Collapse navigation"}
+            aria-pressed={collapsed}
+            className="inline-flex size-8 items-center justify-center rounded-lg text-ink-muted transition-colors hover:bg-elevated hover:text-ink"
+          >
+            {collapsed ? (
+              <PanelLeftOpen className="size-4" aria-hidden="true" />
+            ) : (
+              <PanelLeftClose className="size-4" aria-hidden="true" />
+            )}
+          </button>
+        )}
       </div>
 
       {/* Workspace */}
-      <div className="border-b border-neutral-200 px-3 py-3">
-        <div
-          className={cn(
-            "rounded-lg px-3 py-2",
-            variant === "admin" ? "bg-brand-800" : "bg-neutral-50",
-          )}
-        >
-          <p
+      {showLabels ? (
+        <div className="border-b border-line px-3 py-3">
+          <div
             className={cn(
-              "text-[11px] font-medium tracking-wide uppercase",
-              variant === "admin" ? "text-brand-200" : "text-ink-muted",
+              "rounded-lg px-3 py-2",
+              variant === "admin" ? "bg-brand-solid" : "bg-sunken",
             )}
           >
-            {variant === "admin" ? "Admin console" : "Merchant"}
-          </p>
-          <p
-            className={cn(
-              "mt-0.5 truncate text-sm font-semibold",
-              variant === "admin" ? "text-white" : "text-ink",
-            )}
-          >
-            {workspaceName}
-          </p>
+            <p
+              className={cn(
+                "text-[11px] font-medium tracking-wide uppercase",
+                variant === "admin" ? "text-on-brand-muted" : "text-ink-muted",
+              )}
+            >
+              {variant === "admin" ? "Admin console" : "Merchant"}
+            </p>
+            <p
+              className={cn(
+                "mt-0.5 truncate text-sm font-semibold",
+                variant === "admin" ? "text-white" : "text-ink",
+              )}
+            >
+              {workspaceName}
+            </p>
+          </div>
         </div>
-      </div>
+      ) : null}
 
       {/* Navigation */}
       <nav
@@ -132,7 +209,7 @@ export function Sidebar({
       >
         {sections.map((section, sectionIndex) => (
           <div key={section.title ?? sectionIndex} className="mb-6 last:mb-0">
-            {section.title ? (
+            {section.title && showLabels ? (
               <p className="mb-2 px-3 text-[11px] font-semibold tracking-wide text-ink-faint uppercase">
                 {section.title}
               </p>
@@ -148,21 +225,27 @@ export function Sidebar({
                       href={item.href}
                       onClick={onNavigate}
                       aria-current={active ? "page" : undefined}
+                      title={showLabels ? undefined : item.label}
                       className={cn(
-                        "flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-medium transition-colors",
+                        "flex items-center rounded-lg py-2 text-sm font-medium transition-colors",
+                        showLabels ? "gap-2.5 px-3" : "justify-center px-0",
                         active
-                          ? "bg-brand-50 text-brand-800"
-                          : "text-ink-soft hover:bg-neutral-100 hover:text-ink",
+                          ? "bg-brand-tint text-brand-ink"
+                          : "text-ink-soft hover:bg-elevated hover:text-ink",
                       )}
                     >
                       <Icon
                         className={cn(
                           "size-4 shrink-0",
-                          active ? "text-brand-700" : "text-ink-muted",
+                          active ? "text-brand-link" : "text-ink-muted",
                         )}
                         aria-hidden="true"
                       />
-                      <span className="truncate">{item.label}</span>
+                      {showLabels ? (
+                        <span className="truncate">{item.label}</span>
+                      ) : (
+                        <span className="sr-only">{item.label}</span>
+                      )}
                     </Link>
                   </li>
                 );
@@ -173,7 +256,7 @@ export function Sidebar({
       </nav>
 
       {/* User footer */}
-      <div className="shrink-0 border-t border-neutral-200 p-3">
+      <div className="shrink-0 border-t border-line p-3">
         <div className="relative">
           {menuOpen ? (
             <>
@@ -182,8 +265,8 @@ export function Sidebar({
                 onClick={() => setMenuOpen(false)}
                 aria-hidden="true"
               />
-              <div className="absolute bottom-full left-0 z-20 mb-2 w-full overflow-hidden rounded-lg border border-neutral-200 bg-white p-1 shadow-overlay">
-                <div className="border-b border-neutral-200 px-2.5 py-2">
+              <div className="absolute bottom-full left-0 z-20 mb-2 w-full overflow-hidden rounded-lg border border-line bg-surface p-1 shadow-overlay">
+                <div className="border-b border-line px-2.5 py-2">
                   <p className="truncate text-[13px] font-semibold text-ink">
                     {user.name}
                   </p>
@@ -201,14 +284,14 @@ export function Sidebar({
                     setMenuOpen(false);
                     onNavigate?.();
                   }}
-                  className="block rounded-md px-2.5 py-2 text-[13px] font-medium text-ink-soft transition-colors hover:bg-neutral-100"
+                  className="block rounded-md px-2.5 py-2 text-[13px] font-medium text-ink-soft transition-colors hover:bg-elevated"
                 >
                   Account settings
                 </Link>
                 <button
                   type="button"
                   onClick={handleLogout}
-                  className="flex w-full items-center gap-2 rounded-md px-2.5 py-2 text-left text-[13px] font-medium text-danger-600 transition-colors hover:bg-danger-50"
+                  className="flex w-full items-center gap-2 rounded-md px-2.5 py-2 text-left text-[13px] font-medium text-danger-fg transition-colors hover:bg-danger-tint"
                 >
                   <LogOut className="size-3.5" aria-hidden="true" />
                   Logout
@@ -222,24 +305,31 @@ export function Sidebar({
             onClick={() => setMenuOpen((value) => !value)}
             aria-expanded={menuOpen}
             aria-haspopup="menu"
-            className="flex w-full items-center gap-2.5 rounded-lg px-2 py-2 text-left transition-colors hover:bg-neutral-100"
+            className={cn(
+              "flex w-full items-center rounded-lg py-2 text-left transition-colors hover:bg-elevated",
+              showLabels ? "gap-2.5 px-2" : "justify-center px-0",
+            )}
           >
             <Avatar name={user.name} size="sm" />
-            <div className="min-w-0 flex-1">
-              <p className="truncate text-[13px] font-semibold text-ink">
-                {user.name}
-              </p>
-              <p className="truncate text-[12px] text-ink-muted">
-                {user.organization}
-              </p>
-            </div>
-            <ChevronDown
-              className={cn(
-                "size-3.5 shrink-0 text-ink-faint transition-transform",
-                menuOpen && "rotate-180",
-              )}
-              aria-hidden="true"
-            />
+            {showLabels ? (
+              <>
+                <div className="min-w-0 flex-1">
+                  <p className="truncate text-[13px] font-semibold text-ink">
+                    {user.name}
+                  </p>
+                  <p className="truncate text-[12px] text-ink-muted">
+                    {user.organization}
+                  </p>
+                </div>
+                <ChevronDown
+                  className={cn(
+                    "size-3.5 shrink-0 text-ink-faint transition-transform",
+                    menuOpen && "rotate-180",
+                  )}
+                  aria-hidden="true"
+                />
+              </>
+            ) : null}
           </button>
         </div>
       </div>

@@ -40,11 +40,17 @@ export const accountStatusSchema = z.enum(["PENDING", "ACTIVE", "SUSPENDED"]);
 export const deviceStatusSchema = z.enum(["PENDING", "ONLINE", "OFFLINE"]);
 
 export const transactionStatusSchema = z.enum([
-  "SUCCESS",
+  "CREATED",
   "PENDING",
   "REVIEW",
+  "CONFIRMED",
   "FAILED",
+  "EXPIRED",
+  "CANCELLED",
+  "REFUNDED",
 ]);
+
+export const paymentStatusSchema = transactionStatusSchema;
 
 export const paginationSchema = z.object({
   page: z.coerce.number().int().min(1).default(1),

@@ -9,12 +9,12 @@ const sizeStyles = {
 } as const;
 
 const toneStyles = {
-  brand: "bg-brand-100 text-brand-800",
-  neutral: "bg-neutral-200 text-ink-soft",
-  success: "bg-success-100 text-success-700",
-  warning: "bg-warning-100 text-warning-700",
-  danger: "bg-danger-100 text-danger-700",
-  info: "bg-info-100 text-info-700",
+  brand: "bg-brand-tint text-brand-link",
+  neutral: "bg-elevated text-ink-soft",
+  success: "bg-success-tint text-success-text",
+  warning: "bg-warning-tint text-warning-text",
+  danger: "bg-danger-tint text-danger-text",
+  info: "bg-info-tint text-info-text",
 } as const;
 
 export type AvatarTone = keyof typeof toneStyles;

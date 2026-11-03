@@ -33,7 +33,7 @@ import type { ParseOutcome, ParseResult, ProviderParser } from "./types.js";
  *
  *      The provider reference carries the most weight because it is the only
  *      field that makes a notification traceable back to the provider.
- *      Reaching the 0.9 auto-accept threshold therefore requires an amount,
+ *      Reaching the 0.9 confidence threshold therefore requires an amount,
  *      a reference and a sender name — exactly the bar for a notification
  *      that can be trusted without a human looking at it.
  */

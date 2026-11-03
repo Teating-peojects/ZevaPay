@@ -5,6 +5,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Check, Copy, KeyRound, Plus, Trash2 } from "lucide-react";
 import { Alert } from "@/components/ui/alert";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -23,12 +24,17 @@ import { apiKeySchema, type ApiKeyValues } from "@/lib/schemas";
 import type { ApiApiKey } from "@/types/api";
 
 /**
- * API key management. The full secret is only ever returned by the API when
- * the key is created — afterwards only the prefix is visible.
+ * API keys, on the real API.
+ *
+ * The backend already covers `GET/POST/DELETE /api/v1/merchant/api-keys`, so
+ * this panel talks to the real endpoint rather than the mock layer. The full
+ * secret comes back exactly once, in the response to the create call; after
+ * that only the prefix is ever visible.
  */
-export function ApiKeysCard() {
+export function ApiKeysPanel() {
   const { toast } = useToast();
   const { copied, copy } = useCopyToClipboard();
+
   const [keys, setKeys] = React.useState<ApiApiKey[]>([]);
   const [loading, setLoading] = React.useState(true);
   const [error, setError] = React.useState<string | null>(null);
@@ -38,6 +44,7 @@ export function ApiKeysCard() {
     secret: string;
   } | null>(null);
   const [revoking, setRevoking] = React.useState<string | null>(null);
+  const [reloadToken, setReloadToken] = React.useState(0);
 
   const {
     register,
@@ -49,24 +56,23 @@ export function ApiKeysCard() {
     defaultValues: { name: "" },
   });
 
-  const load = React.useCallback(async () => {
-    const response = await apiFetch<{ apiKeys: ApiApiKey[] }>(
-      "/api/v1/merchant/api-keys",
-    );
-    setKeys(response.apiKeys);
-  }, []);
-
-  const [reloadToken, setReloadToken] = React.useState(0);
-
   React.useEffect(() => {
     let cancelled = false;
 
     async function fetchKeys() {
+      setLoading(true);
+      setError(null);
       try {
-        await load();
+        const response = await apiFetch<{ apiKeys: ApiApiKey[] }>(
+          "/api/v1/merchant/api-keys",
+        );
+        if (cancelled) return;
+        setKeys(response.apiKeys);
       } catch {
         if (cancelled) return;
-        setError("We could not load your API keys. Please try again.");
+        setError(
+          "We could not reach the API to list your keys. The rest of this page still works.",
+        );
       } finally {
         if (!cancelled) setLoading(false);
       }
@@ -77,7 +83,6 @@ export function ApiKeysCard() {
     return () => {
       cancelled = true;
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [reloadToken]);
 
   async function onCreate(values: ApiKeyValues) {
@@ -164,7 +169,7 @@ export function ApiKeysCard() {
               {[0, 1].map((index) => (
                 <div
                   key={index}
-                  className="h-12 animate-pulse rounded-lg bg-neutral-200/70"
+                  className="h-12 animate-pulse rounded-lg bg-elevated"
                 />
               ))}
             </div>
@@ -174,7 +179,7 @@ export function ApiKeysCard() {
               history from your own systems.
             </p>
           ) : (
-            <ul className="divide-y divide-neutral-200">
+            <ul className="divide-y divide-line">
               {keys.map((key) => (
                 <li
                   key={key.id}
@@ -193,19 +198,26 @@ export function ApiKeysCard() {
                   </div>
                   <div className="flex shrink-0 items-center gap-2">
                     {key.revokedAt ? (
-                      <span className="text-[12px] font-medium text-danger-600">
+                      <Badge tone="danger" dot>
                         Revoked
-                      </span>
+                      </Badge>
                     ) : (
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => void handleRevoke(key)}
-                        loading={revoking === key.id}
-                      >
-                        <Trash2 className="size-3.5" aria-hidden="true" />
-                        Revoke
-                      </Button>
+                      <>
+                        <span className="text-[12px] text-ink-muted">
+                          {key.lastUsedAt
+                            ? `Last used ${formatDate(key.lastUsedAt)}`
+                            : "Never used"}
+                        </span>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => void handleRevoke(key)}
+                          loading={revoking === key.id}
+                        >
+                          <Trash2 className="size-3.5" aria-hidden="true" />
+                          Revoke
+                        </Button>
+                      </>
                     )}
                   </div>
                 </li>
@@ -227,19 +239,23 @@ export function ApiKeysCard() {
             <Button variant="outline" onClick={() => setCreateOpen(false)}>
               Cancel
             </Button>
-            <Button type="submit" form="api-key-form" loading={isSubmitting}>
+            <Button type="submit" form="developers-api-key-form" loading={isSubmitting}>
               Create key
             </Button>
           </>
         }
       >
-        <form id="api-key-form" onSubmit={handleSubmit(onCreate)} noValidate>
+        <form
+          id="developers-api-key-form"
+          onSubmit={handleSubmit(onCreate)}
+          noValidate
+        >
           <div>
-            <Label htmlFor="api-key-name" required>
+            <Label htmlFor="developers-api-key-name" required>
               Key name
             </Label>
             <Input
-              id="api-key-name"
+              id="developers-api-key-name"
               placeholder="e.g. Reporting script"
               error={errors.name?.message}
               {...register("name")}
@@ -265,7 +281,7 @@ export function ApiKeysCard() {
             the key and create a new one.
           </Alert>
 
-          <div className="flex items-center gap-3 rounded-lg border border-neutral-200 bg-neutral-50 px-4 py-3">
+          <div className="flex items-center gap-3 rounded-lg border border-line bg-elevated px-4 py-3">
             <code className="flex-1 font-mono text-[13px] break-all text-ink">
               {issuedSecret?.secret}
             </code>
@@ -277,7 +293,7 @@ export function ApiKeysCard() {
               className="shrink-0"
             >
               {copied ? (
-                <Check className="size-3.5 text-success-600" aria-hidden="true" />
+                <Check className="size-3.5 text-success-fg" aria-hidden="true" />
               ) : (
                 <Copy className="size-3.5" aria-hidden="true" />
               )}

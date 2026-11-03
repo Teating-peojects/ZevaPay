@@ -29,15 +29,6 @@ import {
 } from "../lib/tokens.js";
 import { serializeMerchant, serializeUser } from "../lib/serializers.js";
 
-/**
- * Reset tokens live in memory rather than a dedicated table: they are
- * short-lived, single-use and never need to survive a restart.
- */
-const resetTokens = new Map<
-  string,
-  { userId: string; expiresAt: number; used: boolean }
->();
-
 export async function registerAuthRoutes(app: FastifyInstance): Promise<void> {
   // ---------------------------------------------------------------------
   // POST /api/v1/auth/register
@@ -337,10 +328,16 @@ export async function registerAuthRoutes(app: FastifyInstance): Promise<void> {
       // which email addresses have accounts.
       if (user) {
         const token = randomToken(32);
-        resetTokens.set(token, {
-          userId: user.id,
-          expiresAt: Date.now() + 30 * 60 * 1000,
-          used: false,
+        await prisma.verificationToken.create({
+          data: {
+            tokenHash: sha256(token),
+            purpose: "PASSWORD_RESET",
+            userId: user.id,
+            expiresAt: new Date(Date.now() + 30 * 60 * 1000),
+          },
+        });
+        await prisma.verificationToken.deleteMany({
+          where: { userId: user.id, purpose: "PASSWORD_RESET", expiresAt: { lt: new Date() } },
         });
         request.log.info(
           { userId: user.id },
@@ -367,29 +364,23 @@ export async function registerAuthRoutes(app: FastifyInstance): Promise<void> {
       })
       .parse(request.body);
 
-    const entry = resetTokens.get(body.token);
-    if (!entry || entry.used || entry.expiresAt < Date.now()) {
-      throw new ValidationError("That reset link is invalid or has expired.");
-    }
-
-    const user = await prisma.user.findUnique({
-      where: { id: entry.userId },
-      select: { id: true, merchantId: true },
+    const tokenHash = sha256(body.token);
+    const user = await prisma.$transaction(async (tx) => {
+      const claimed = await tx.verificationToken.updateMany({
+        where: { tokenHash, purpose: "PASSWORD_RESET", usedAt: null, expiresAt: { gt: new Date() } },
+        data: { usedAt: new Date() },
+      });
+      if (claimed.count !== 1) throw new ValidationError("That reset link is invalid or has expired.");
+      const token = await tx.verificationToken.findUnique({ where: { tokenHash }, select: { userId: true } });
+      if (!token) throw new ValidationError("That reset link is invalid or has expired.");
+      const updatedUser = await tx.user.update({
+        where: { id: token.userId },
+        data: { passwordHash: await hashPassword(body.password) },
+        select: { id: true, merchantId: true },
+      });
+      await tx.session.updateMany({ where: { userId: token.userId, revokedAt: null }, data: { revokedAt: new Date() } });
+      return updatedUser;
     });
-    if (!user) {
-      throw new ValidationError("That reset link is invalid or has expired.");
-    }
-
-    entry.used = true;
-    resetTokens.delete(body.token);
-
-    await prisma.user.update({
-      where: { id: user.id },
-      data: { passwordHash: await hashPassword(body.password) },
-    });
-
-    // Any existing sessions are invalidated after a password change.
-    await revokeAllSessions(user.id);
 
     await recordAudit({
       action: "PASSWORD_CHANGED",
@@ -400,6 +391,32 @@ export async function registerAuthRoutes(app: FastifyInstance): Promise<void> {
     });
 
     return reply.send({ ok: true });
+  });
+
+  app.post("/api/v1/auth/email-verification/request", { preHandler: [app.authenticate] }, async (request) => {
+    const token = randomToken(32);
+    await prisma.verificationToken.create({ data: {
+      tokenHash: sha256(token), purpose: "EMAIL_VERIFICATION", userId: request.auth!.userId,
+      expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000),
+    } });
+    return { ok: true, message: "If email delivery is configured, a verification link will be sent." };
+  });
+
+  app.post("/api/v1/auth/verify-email", async (request) => {
+    const body = z.object({ token: z.string().trim().min(20).max(200) }).parse(request.body);
+    const tokenHash = sha256(body.token);
+    const user = await prisma.$transaction(async (tx) => {
+      const claim = await tx.verificationToken.updateMany({
+        where: { tokenHash, purpose: "EMAIL_VERIFICATION", usedAt: null, expiresAt: { gt: new Date() } },
+        data: { usedAt: new Date() },
+      });
+      if (claim.count !== 1) throw new ValidationError("That verification link is invalid or expired.");
+      const token = await tx.verificationToken.findUnique({ where: { tokenHash }, select: { userId: true } });
+      if (!token) throw new ValidationError("That verification link is invalid or expired.");
+      return tx.user.update({ where: { id: token.userId }, data: { emailVerifiedAt: new Date() }, select: { id: true, merchantId: true } });
+    });
+    await recordAudit({ action: "EMAIL_VERIFIED", actorId: user.id, merchantId: user.merchantId, ipAddress: request.ip });
+    return { ok: true };
   });
 
   // ---------------------------------------------------------------------

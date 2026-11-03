@@ -12,6 +12,8 @@ import { registerMerchantRoutes } from "./routes/merchant.js";
 import { registerAdminRoutes } from "./routes/admin.js";
 import { registerDeviceRoutes } from "./routes/device.js";
 import { registerStreamRoutes } from "./routes/stream.js";
+import { registerPaymentRoutes } from "./routes/payments.js";
+import { registerCustomerRoutes } from "./routes/customers.js";
 
 /**
  * Builds the Fastify application. Kept separate from the process bootstrap so
@@ -102,6 +104,8 @@ export async function buildApp(): Promise<FastifyInstance> {
 
   await registerAuthRoutes(app);
   await registerMerchantRoutes(app);
+  await registerPaymentRoutes(app);
+  await registerCustomerRoutes(app);
   await registerAdminRoutes(app);
   await registerDeviceRoutes(app);
   await registerStreamRoutes(app);

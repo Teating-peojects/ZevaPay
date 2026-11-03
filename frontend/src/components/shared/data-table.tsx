@@ -15,7 +15,9 @@ import {
 } from "@/components/ui/table";
 import { EmptyState, TableSkeleton } from "@/components/ui/states";
 import { Pagination } from "@/components/ui/pagination";
-import { DATE_RANGE_OPTIONS, type DateRange } from "@/lib/date-range";
+import { SortableTableHead } from "@/components/shared/sortable-table-header";
+import { DATE_RANGE_OPTIONS, dateRangeDays, type DateRange } from "@/lib/date-range";
+import { parseAmount } from "@/lib/money";
 import { cn } from "@/lib/utils";
 
 export interface Column<T> {
@@ -25,6 +27,19 @@ export interface Column<T> {
   /** Extra classes for both the header and body cells. */
   className?: string;
   align?: "left" | "right";
+  /**
+   * The value this column sorts by.
+   *
+   * A column with a `sortValue` becomes sortable. Without one the header is
+   * plain text, so a table never offers a sort that cannot work.
+   */
+  sortValue?: (row: T) => string | number;
+}
+
+/** Which column the rows are sorted by, and in which direction. */
+export interface SortState {
+  sort: string;
+  order: "asc" | "desc";
 }
 
 export interface FilterConfig<T> {
@@ -44,6 +59,7 @@ export type { DateRange } from "@/lib/date-range";
 export {
   DATE_RANGE_OPTIONS,
   dateRangeBounds,
+  dateRangeDays,
 } from "@/lib/date-range";
 
 /**
@@ -64,7 +80,7 @@ export function makeDateMatcher<T>(
       start.setHours(0, 0, 0, 0);
       return time >= start.getTime();
     }
-    const days = range === "7d" ? 7 : 30;
+    const days = dateRangeDays(range) ?? 30;
     return time >= referenceNow - days * dayMs;
   };
 }
@@ -101,6 +117,23 @@ export interface DataTableProps<T> {
   hideExport?: boolean;
   /** Pre-filled search term, e.g. from a `?q=` query parameter. */
   initialQuery?: string;
+  /** Initial sort, used in client mode. */
+  initialSort?: SortState;
+  /**
+   * An amount range filter, shown as two inputs in the toolbar.
+   *
+   * The matcher runs against the rows the table currently holds. In server
+   * mode those rows are the current page, so the table says so in a note
+   * next to the inputs rather than implying a server-side filter.
+   */
+  amountFilter?: {
+    min: string;
+    max: string;
+    onChange: (value: { min: string; max: string }) => void;
+    match: (row: T, min: number | null, max: number | null) => boolean;
+    /** Shown under the inputs. */
+    hint?: string;
+  };
   /**
    * When provided, filtering and pagination are delegated to the server.
    * The rows are used as-is and the component reports user intent upward.
@@ -116,10 +149,22 @@ export interface DataTableProps<T> {
     filters?: Record<string, string>;
     /** Current date range. */
     dateRange?: DateRange;
+    /** Current sort, when the caller supports sorting. */
+    sort?: SortState;
+    /**
+     * A note about how the sort is applied.
+     *
+     * The API has no sort parameter, so a server-mode table sorts the page it
+     * holds rather than the whole result set. Saying so keeps the header from
+     * implying more than the table can do.
+     */
+    hint?: string;
     onPageChange: (page: number) => void;
     onQueryChange?: (query: string) => void;
     onFilterChange?: (id: string, value: string) => void;
     onDateRangeChange?: (range: DateRange) => void;
+    /** Called when a sortable header is clicked. */
+    onSortChange?: (sort: SortState) => void;
     /** Extra handler for the export button. */
     onExport?: () => void;
   };
@@ -155,6 +200,8 @@ export function DataTable<T extends { id: string }>({
   toolbar,
   hideExport = false,
   initialQuery = "",
+  initialSort,
+  amountFilter,
   server,
 }: DataTableProps<T>) {
   const isServerMode = server !== undefined;
@@ -166,6 +213,9 @@ export function DataTable<T extends { id: string }>({
     Record<string, string>
   >({});
   const [localDateRange, setLocalDateRange] = React.useState<DateRange>("all");
+  const [localSort, setLocalSort] = React.useState<SortState | undefined>(
+    initialSort,
+  );
   const [page, setPage] = React.useState(1);
 
   const query = isServerMode ? (server.query ?? "") : localQuery;
@@ -174,10 +224,23 @@ export function DataTable<T extends { id: string }>({
     [isServerMode, server, localFilterValues],
   );
   const dateRange = isServerMode ? (server.dateRange ?? "all") : localDateRange;
+  const sortState = isServerMode ? server.sort : localSort;
 
   const filteredRows = React.useMemo(() => {
-    // In server mode the API has already filtered and paginated the rows.
-    if (isServerMode) return rows;
+    // In server mode the API has already applied the search, the filters and
+    // the date range. The amount range is the exception: the API has no
+    // amount filter, so the table applies it to the rows it holds and says
+    // so in the hint under the inputs.
+    const matchesAmount = (row: T) => {
+      if (!amountFilter) return true;
+      const min = parseAmount(amountFilter.min);
+      const max = parseAmount(amountFilter.max);
+      return amountFilter.match(row, min, max);
+    };
+
+    if (isServerMode) {
+      return rows.filter(matchesAmount);
+    }
 
     const normalizedQuery = query.trim().toLowerCase();
 
@@ -199,7 +262,11 @@ export function DataTable<T extends { id: string }>({
 
       if (!matchesFilters) return false;
 
-      return dateFilter ? dateFilter(row, dateRange) : true;
+      if (dateFilter && !dateFilter(row, dateRange)) return false;
+
+      if (!matchesAmount(row)) return false;
+
+      return true;
     });
   }, [
     rows,
@@ -209,25 +276,73 @@ export function DataTable<T extends { id: string }>({
     searchKeys,
     dateFilter,
     dateRange,
+    amountFilter,
     isServerMode,
   ]);
 
+  const sortedRows = React.useMemo(() => {
+    if (!sortState) return filteredRows;
+
+    const column = columns.find((entry) => entry.key === sortState.sort);
+    if (!column?.sortValue) return filteredRows;
+
+    const direction = sortState.order === "asc" ? 1 : -1;
+
+    return [...filteredRows].sort((a, b) => {
+      const left = column.sortValue!(a);
+      const right = column.sortValue!(b);
+
+      if (typeof left === "number" && typeof right === "number") {
+        return (left - right) * direction;
+      }
+
+      return (
+        String(left ?? "").localeCompare(String(right ?? ""), undefined, {
+          numeric: true,
+          sensitivity: "base",
+        }) * direction
+      );
+    });
+  }, [filteredRows, sortState, columns]);
+
   const pageCount = isServerMode
     ? Math.max(1, Math.ceil(server.total / server.pageSize))
-    : Math.max(1, Math.ceil(filteredRows.length / pageSize));
+    : Math.max(1, Math.ceil(sortedRows.length / pageSize));
 
   const safePage = isServerMode
     ? Math.min(server.page, pageCount)
     : Math.min(page, pageCount);
 
   const pageRows = isServerMode
-    ? filteredRows
-    : filteredRows.slice((safePage - 1) * pageSize, safePage * pageSize);
+    ? sortedRows
+    : sortedRows.slice((safePage - 1) * pageSize, safePage * pageSize);
 
   const hasActiveFilters =
     query.trim().length > 0 ||
     Object.keys(filterValues).length > 0 ||
-    dateRange !== "all";
+    dateRange !== "all" ||
+    (amountFilter !== undefined &&
+      (amountFilter.min.trim().length > 0 || amountFilter.max.trim().length > 0));
+
+  function handleSortChange(columnKey: string) {
+    const current = sortState;
+    const order =
+      current && current.sort === columnKey
+        ? current.order === "asc"
+          ? "desc"
+          : "asc"
+        : "desc";
+
+    const next: SortState = { sort: columnKey, order };
+
+    if (isServerMode) {
+      server.onSortChange?.(next);
+      server.onPageChange(1);
+    } else {
+      setLocalSort(next);
+      setPage(1);
+    }
+  }
 
   function handleQueryChange(value: string) {
     if (isServerMode) {
@@ -264,11 +379,13 @@ export function DataTable<T extends { id: string }>({
       server.onQueryChange?.("");
       for (const filter of filters ?? []) server.onFilterChange?.(filter.id, "");
       server.onDateRangeChange?.("all");
+      amountFilter?.onChange({ min: "", max: "" });
       server.onPageChange(1);
     } else {
       setLocalQuery("");
       setLocalFilterValues({});
       setLocalDateRange("all");
+      amountFilter?.onChange({ min: "", max: "" });
       setPage(1);
     }
   }
@@ -283,7 +400,13 @@ export function DataTable<T extends { id: string }>({
   return (
     <div className="flex flex-col gap-4">
       {/* Toolbar */}
-      {(searchKeys || showSearch || filters?.length || dateFilter || showDateFilter || toolbar) &&
+      {(searchKeys ||
+        showSearch ||
+        filters?.length ||
+        dateFilter ||
+        showDateFilter ||
+        amountFilter ||
+        toolbar) &&
       !loading &&
       !error ? (
         <div className="flex flex-col gap-3 lg:flex-row lg:items-center">
@@ -323,6 +446,47 @@ export function DataTable<T extends { id: string }>({
               </Select>
             </div>
           ))}
+
+          {amountFilter ? (
+            <div className="flex w-full flex-col gap-1 lg:w-auto">
+              <div className="flex items-center gap-2">
+                <Input
+                  type="number"
+                  inputMode="numeric"
+                  min={0}
+                  value={amountFilter.min}
+                  onChange={(event) =>
+                    amountFilter.onChange({
+                      ...amountFilter,
+                      min: event.target.value,
+                    })
+                  }
+                  placeholder="Min"
+                  aria-label="Minimum amount in BDT"
+                  className="h-9 w-24"
+                />
+                <span className="text-[13px] text-ink-faint">–</span>
+                <Input
+                  type="number"
+                  inputMode="numeric"
+                  min={0}
+                  value={amountFilter.max}
+                  onChange={(event) =>
+                    amountFilter.onChange({
+                      ...amountFilter,
+                      max: event.target.value,
+                    })
+                  }
+                  placeholder="Max"
+                  aria-label="Maximum amount in BDT"
+                  className="h-9 w-24"
+                />
+              </div>
+              {amountFilter.hint ? (
+                <p className="text-[12px] text-ink-muted">{amountFilter.hint}</p>
+              ) : null}
+            </div>
+          ) : null}
 
           {dateFilter || showDateFilter ? (
             <div className="w-full lg:w-40">
@@ -407,17 +571,29 @@ export function DataTable<T extends { id: string }>({
             <Table>
               <TableHeader>
                 <TableRow>
-                  {columns.map((column) => (
-                    <TableHead
-                      key={column.key}
-                      className={cn(
-                        column.align === "right" && "text-right",
-                        column.className,
-                      )}
-                    >
-                      {column.header}
-                    </TableHead>
-                  ))}
+                  {columns.map((column) =>
+                    column.sortValue ? (
+                      <SortableTableHead
+                        key={column.key}
+                        field={column.key}
+                        label={column.header}
+                        state={sortState ?? { sort: "", order: "desc" }}
+                        onSort={handleSortChange}
+                        align={column.align}
+                        className={column.className}
+                      />
+                    ) : (
+                      <TableHead
+                        key={column.key}
+                        className={cn(
+                          column.align === "right" && "text-right",
+                          column.className,
+                        )}
+                      >
+                        {column.header}
+                      </TableHead>
+                    ),
+                  )}
                   {actions ? (
                     <TableHead className="w-12 text-right">
                       <span className="sr-only">Actions</span>
@@ -453,7 +629,7 @@ export function DataTable<T extends { id: string }>({
                         >
                           <Dropdown
                             align="right"
-                            triggerClassName="rounded-lg p-1.5 hover:bg-neutral-100"
+                            triggerClassName="rounded-lg p-1.5 hover:bg-elevated"
                             trigger={
                               <>
                                 <span className="sr-only">Row actions</span>
@@ -481,6 +657,10 @@ export function DataTable<T extends { id: string }>({
           </>
         )}
       </div>
+
+      {server?.hint ? (
+        <p className="text-[12px] text-ink-muted">{server.hint}</p>
+      ) : null}
     </div>
   );
 }

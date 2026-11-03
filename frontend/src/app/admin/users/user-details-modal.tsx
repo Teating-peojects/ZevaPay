@@ -1,9 +1,17 @@
 "use client";
 
 import { Modal } from "@/components/ui/modal";
-import { MerchantStatusBadge } from "@/components/shared/status-badge";
-import { formatDate, formatDateTime } from "@/lib/format";
-import type { ApiMerchant } from "@/types/api";
+import { Badge } from "@/components/ui/badge";
+import { formatDateTime } from "@/lib/format";
+import type { ApiUser, UserRole } from "@/types/api";
+
+const ROLE_LABELS: Record<UserRole, string> = {
+  PLATFORM_ADMIN: "Platform admin",
+  MERCHANT_OWNER: "Owner",
+  MERCHANT_ADMIN: "Admin",
+  MERCHANT_OPERATOR: "Operator",
+  MERCHANT_VIEWER: "Viewer",
+};
 
 function DetailRow({
   label,
@@ -13,7 +21,7 @@ function DetailRow({
   children: React.ReactNode;
 }) {
   return (
-    <div className="flex flex-col gap-0.5 border-b border-neutral-100 py-3 last:border-b-0 sm:flex-row sm:items-center sm:justify-between sm:gap-6">
+    <div className="flex flex-col gap-0.5 border-b border-line py-3 last:border-b-0 sm:flex-row sm:items-center sm:justify-between sm:gap-6">
       <span className="text-[13px] text-ink-muted">{label}</span>
       <span className="text-[13px] font-medium text-ink sm:text-right">
         {children}
@@ -22,55 +30,60 @@ function DetailRow({
   );
 }
 
-/** Read-only merchant record for the admin user details dialog. */
+/** Read-only account record for the admin user details dialog. */
 export function UserDetailsModal({
-  merchant,
+  user,
   onClose,
 }: {
-  merchant: ApiMerchant | null;
+  user: ApiUser | null;
   onClose: () => void;
 }) {
   return (
     <Modal
-      open={merchant !== null}
+      open={user !== null}
       onClose={onClose}
-      title="Merchant details"
-      description={merchant?.businessName}
+      title="User details"
+      description={user?.fullName}
       size="md"
       footer={
         <button
           type="button"
           onClick={onClose}
-          className="rounded-lg border border-neutral-300 bg-white px-3.5 py-2 text-sm font-medium text-ink transition-colors hover:bg-neutral-50"
+          className="rounded-lg border border-line-strong bg-surface px-3.5 py-2 text-sm font-medium text-ink transition-colors hover:bg-elevated"
         >
           Close
         </button>
       }
     >
-      {merchant ? (
+      {user ? (
         <div className="flex flex-col gap-4">
-          <div className="flex flex-col gap-1 rounded-lg border border-neutral-200 bg-neutral-50 px-4 py-4">
-            <span className="text-[13px] text-ink-muted">Business name</span>
+          <div className="flex flex-col gap-1 rounded-lg border border-line bg-elevated px-4 py-4">
+            <span className="text-[13px] text-ink-muted">Name</span>
             <span className="text-lg font-semibold tracking-tight text-ink">
-              {merchant.businessName}
+              {user.fullName}
             </span>
-            <div className="mt-1.5">
-              <MerchantStatusBadge status={merchant.status} />
+            <div className="mt-1.5 flex flex-wrap items-center gap-2">
+              <Badge tone={user.role === "PLATFORM_ADMIN" ? "brand" : "neutral"}>
+                {ROLE_LABELS[user.role]}
+              </Badge>
+              <Badge tone={user.isActive ? "success" : "danger"} dot>
+                {user.isActive ? "Active" : "Deactivated"}
+              </Badge>
             </div>
           </div>
 
           <div className="flex flex-col">
-            <DetailRow label="Merchant ID">{merchant.id}</DetailRow>
-            <DetailRow label="Owner name">{merchant.ownerName}</DetailRow>
-            <DetailRow label="Email">{merchant.email}</DetailRow>
-            <DetailRow label="Phone">{merchant.phone ?? "Not provided"}</DetailRow>
-            <DetailRow label="Country">{merchant.country}</DetailRow>
-            <DetailRow label="Plan">{merchant.plan}</DetailRow>
-            <DetailRow label="Registered">
-              {formatDate(merchant.registrationDate)}
+            <DetailRow label="User ID">{user.id}</DetailRow>
+            <DetailRow label="Email">{user.email}</DetailRow>
+            <DetailRow label="Phone">{user.phone ?? "Not provided"}</DetailRow>
+            <DetailRow label="Merchant">
+              {user.merchantName ?? "ZevaPay Platform"}
             </DetailRow>
-            <DetailRow label="Last active">
-              {formatDateTime(merchant.lastActiveAt)}
+            <DetailRow label="Signed up">
+              {formatDateTime(user.createdAt)}
+            </DetailRow>
+            <DetailRow label="Last sign-in">
+              {user.lastLoginAt ? formatDateTime(user.lastLoginAt) : "Never"}
             </DetailRow>
           </div>
         </div>

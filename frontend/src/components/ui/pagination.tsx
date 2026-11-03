@@ -33,7 +33,7 @@ export function Pagination({
   return (
     <div
       className={cn(
-        "flex items-center justify-between gap-4 border-t border-neutral-200 px-4 py-3",
+        "flex items-center justify-between gap-4 border-t border-line px-4 py-3",
         className,
       )}
     >
@@ -69,8 +69,8 @@ export function Pagination({
               className={cn(
                 "inline-flex size-9 items-center justify-center rounded-lg text-[13px] font-medium transition-colors",
                 entry === page
-                  ? "bg-brand-700 text-white"
-                  : "text-ink-soft hover:bg-neutral-100",
+                  ? "bg-brand-solid text-white"
+                  : "text-ink-soft hover:bg-elevated",
               )}
             >
               {entry}

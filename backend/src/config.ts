@@ -19,10 +19,7 @@ const envSchema = z.object({
       message: "DATABASE_URL must be a PostgreSQL connection string",
     }),
 
-  JWT_SECRET: z
-    .string()
-    .min(32, "JWT_SECRET must be at least 32 characters")
-    .default("dev-only-secret-change-me-in-production-000000"),
+  JWT_SECRET: z.string().min(32, "JWT_SECRET must be at least 32 characters").optional(),
   JWT_ACCESS_TTL: z.string().default("15m"),
   JWT_REFRESH_TTL: z.string().default("30d"),
 
@@ -30,17 +27,21 @@ const envSchema = z.object({
   CORS_ORIGINS: z.string().default("http://localhost:3000"),
 
   /** Shared secret the Android device uses when posting notifications. */
-  DEVICE_INGEST_SECRET: z
-    .string()
-    .min(16, "DEVICE_INGEST_SECRET must be at least 16 characters")
-    .default("dev-device-ingest-secret"),
+  DEVICE_INGEST_SECRET: z.string().min(32, "DEVICE_INGEST_SECRET must be at least 32 characters").optional(),
 
-  /** Parser confidence at or above which a notification is auto-accepted. */
+  /** Parser confidence threshold for routing unverified notifications. */
   AUTO_ACCEPT_CONFIDENCE: z.coerce.number().min(0).max(1).default(0.9),
 
   LOG_LEVEL: z
     .enum(["fatal", "error", "warn", "info", "debug", "trace"])
     .default("info"),
+}).superRefine((value, context) => {
+  if (value.NODE_ENV === "production" && !value.JWT_SECRET) {
+    context.addIssue({ code: "custom", path: ["JWT_SECRET"], message: "JWT_SECRET is required in production" });
+  }
+  if (value.NODE_ENV === "production" && !value.DEVICE_INGEST_SECRET) {
+    context.addIssue({ code: "custom", path: ["DEVICE_INGEST_SECRET"], message: "DEVICE_INGEST_SECRET is required in production" });
+  }
 });
 
 const parsed = envSchema.safeParse(process.env);
@@ -61,14 +62,14 @@ export const config = {
   host: env.HOST,
   databaseUrl: env.DATABASE_URL,
   jwt: {
-    secret: env.JWT_SECRET,
+    secret: env.JWT_SECRET ?? "dev-only-secret-change-me-in-production-000000",
     accessTtl: env.JWT_ACCESS_TTL,
     refreshTtl: env.JWT_REFRESH_TTL,
   },
   corsOrigins: env.CORS_ORIGINS.split(",")
     .map((origin) => origin.trim())
     .filter(Boolean),
-  deviceIngestSecret: env.DEVICE_INGEST_SECRET,
+  deviceIngestSecret: env.DEVICE_INGEST_SECRET ?? "dev-device-ingest-secret-change-me",
   autoAcceptConfidence: env.AUTO_ACCEPT_CONFIDENCE,
   logLevel: env.LOG_LEVEL,
 } as const;

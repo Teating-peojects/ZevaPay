@@ -8,7 +8,7 @@ export interface SampleNotification {
   /** Expected parse outcome — used by the simulator to report drift. */
   expect: "auto_accept" | "review";
   /** Expected transaction status once ingested. */
-  status?: "SUCCESS" | "FAILED" | "REVIEW";
+  status?: "CREATED" | "PENDING" | "REVIEW" | "CONFIRMED" | "FAILED" | "EXPIRED" | "CANCELLED" | "REFUNDED";
   text: string;
 }
 

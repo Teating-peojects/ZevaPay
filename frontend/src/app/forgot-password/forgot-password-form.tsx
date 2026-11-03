@@ -55,10 +55,10 @@ export function ForgotPasswordForm() {
   if (sentEmail) {
     return (
       <div className="flex flex-col gap-5">
-        <div className="flex flex-col items-center rounded-lg border border-success-100 bg-success-50 px-6 py-8 text-center">
-          <span className="flex size-11 items-center justify-center rounded-full bg-white">
+        <div className="flex flex-col items-center rounded-lg border border-success-line bg-success-tint px-6 py-8 text-center">
+          <span className="flex size-11 items-center justify-center rounded-full bg-surface">
             <CircleCheck
-              className="size-5 text-success-600"
+              className="size-5 text-success-fg"
               aria-hidden="true"
             />
           </span>

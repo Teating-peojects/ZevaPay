@@ -23,7 +23,7 @@ export function EmptyState({
         className,
       )}
     >
-      <div className="flex size-11 items-center justify-center rounded-full bg-neutral-100">
+      <div className="flex size-11 items-center justify-center rounded-full bg-elevated">
         <Icon className="size-5 text-ink-muted" aria-hidden="true" />
       </div>
       <p className="mt-4 text-[15px] font-semibold text-ink">{title}</p>
@@ -41,7 +41,7 @@ export function EmptyState({
 export function Skeleton({ className }: { className?: string }) {
   return (
     <div
-      className={cn("animate-pulse rounded-md bg-neutral-200/70", className)}
+      className={cn("animate-pulse rounded-md bg-elevated", className)}
       aria-hidden="true"
     />
   );
@@ -67,7 +67,7 @@ export function TableSkeleton({
   columns?: number;
 }) {
   return (
-    <div className="divide-y divide-neutral-200">
+    <div className="divide-y divide-line">
       {Array.from({ length: rows }).map((_, rowIndex) => (
         <div key={rowIndex} className="flex items-center gap-4 px-4 py-3.5">
           {Array.from({ length: columns }).map((__, colIndex) => (

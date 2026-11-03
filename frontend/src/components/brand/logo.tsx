@@ -22,7 +22,7 @@ export function Logo({
       <span
         className={cn(
           "flex size-9 shrink-0 items-center justify-center rounded-lg",
-          variant === "light" ? "bg-white/15" : "bg-brand-800",
+          variant === "light" ? "bg-white/15" : "bg-brand-solid",
         )}
       >
         <svg
@@ -50,7 +50,7 @@ export function Logo({
           )}
         >
           Zeva
-          <span className={variant === "light" ? "text-brand-200" : "text-brand-700"}>
+          <span className={variant === "light" ? "text-brand-200" : "text-brand-link"}>
             Pay
           </span>
         </span>

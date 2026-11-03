@@ -18,7 +18,7 @@ import {
 
 export async function registerAdminRoutes(app: FastifyInstance): Promise<void> {
   const admin = {
-    preHandler: [app.authenticate, app.requireRole(["PLATFORM_ADMIN"])],
+    preHandler: [app.authenticate, app.requireRole(["SUPER_ADMIN", "ADMIN"]), app.requirePermission("admin:manage")],
   };
 
   // ---------------------------------------------------------------------
@@ -34,7 +34,7 @@ export async function registerAdminRoutes(app: FastifyInstance): Promise<void> {
         }),
         prisma.transaction.aggregate({
           _count: { _all: true },
-          _sum: { amount: true },
+          _sum: { amountMinor: true },
         }),
         prisma.transaction.groupBy({
           by: ["status"],
@@ -77,7 +77,7 @@ export async function registerAdminRoutes(app: FastifyInstance): Promise<void> {
       failed: 0,
     };
     for (const row of statusCounts) {
-      if (row.status === "SUCCESS") transactions.success = row._count._all;
+      if (row.status === "CONFIRMED") transactions.success = row._count._all;
       if (row.status === "PENDING") transactions.pending = row._count._all;
       if (row.status === "REVIEW") transactions.review = row._count._all;
       if (row.status === "FAILED") transactions.failed = row._count._all;
@@ -114,7 +114,7 @@ export async function registerAdminRoutes(app: FastifyInstance): Promise<void> {
       const key = row.occurredAt.toISOString().slice(0, 10);
       const bucket = buckets.get(key);
       if (!bucket) continue;
-      if (row.status === "SUCCESS") bucket.success += 1;
+      if (row.status === "CONFIRMED") bucket.success += 1;
       else if (row.status === "FAILED") bucket.failed += 1;
       else bucket.pending += 1;
     }
@@ -132,7 +132,7 @@ export async function registerAdminRoutes(app: FastifyInstance): Promise<void> {
         activeMerchants: merchants.active,
         totalTransactions: transactionTotals._count._all,
         pendingReviews: transactions.review,
-        totalAmount: Number(transactionTotals._sum.amount ?? 0),
+        totalAmount: (transactionTotals._sum.amountMinor ?? 0) / 100,
       },
       merchantCounts: merchants,
       transactionCounts: transactions,
@@ -416,7 +416,7 @@ export async function registerAdminRoutes(app: FastifyInstance): Promise<void> {
       const updated = await prisma.transaction.update({
         where: { id },
         data: {
-          status: body.decision === "ACCEPT" ? "SUCCESS" : "FAILED",
+          status: body.decision === "ACCEPT" ? "CONFIRMED" : "FAILED",
           reviewedById: request.auth!.userId,
           reviewedAt: new Date(),
           confidence: body.decision === "ACCEPT" ? 1 : transaction.confidence,

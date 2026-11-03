@@ -46,5 +46,5 @@ export interface ProviderParser {
   parse(text: string): ParseResult;
 }
 
-/** Confidence at or above which a notification is auto-accepted. */
+/** Parser confidence threshold for routing; it never confirms a payment. */
 export const AUTO_ACCEPT_CONFIDENCE = 0.9;

@@ -28,13 +28,13 @@ import {
 const MERCHANT_ROLES = [
   "MERCHANT_OWNER",
   "MERCHANT_ADMIN",
-  "MERCHANT_OPERATOR",
+  "MERCHANT_MANAGER",
   "MERCHANT_VIEWER",
 ];
 const MERCHANT_WRITE_ROLES = [
   "MERCHANT_OWNER",
   "MERCHANT_ADMIN",
-  "MERCHANT_OPERATOR",
+  "MERCHANT_MANAGER",
 ];
 
 const accountBodySchema = z.object({
@@ -105,7 +105,7 @@ export async function registerMerchantRoutes(app: FastifyInstance): Promise<void
           prisma.transaction.aggregate({
             where: { merchantId },
             _count: { _all: true },
-            _sum: { amount: true },
+            _sum: { amountMinor: true },
           }),
           prisma.paymentAccount.findMany({
             where: { merchantId },
@@ -145,13 +145,13 @@ export async function registerMerchantRoutes(app: FastifyInstance): Promise<void
         failed: 0,
       };
       for (const row of byStatus) {
-        if (row.status === "SUCCESS") statusCounts.success = row._count._all;
+        if (row.status === "CONFIRMED") statusCounts.success = row._count._all;
         if (row.status === "PENDING") statusCounts.pending = row._count._all;
         if (row.status === "REVIEW") statusCounts.review = row._count._all;
         if (row.status === "FAILED") statusCounts.failed = row._count._all;
       }
 
-      const totalAmount = Number(totals._sum.amount ?? 0);
+      const totalAmount = (totals._sum.amountMinor ?? 0) / 100;
       const successRate =
         totals._count._all > 0
           ? Number(((statusCounts.success / totals._count._all) * 100).toFixed(1))
@@ -183,7 +183,7 @@ export async function registerMerchantRoutes(app: FastifyInstance): Promise<void
       for (const row of rawActivity) {
         const bucket = buckets.get(row.occurredAt.toISOString().slice(0, 10));
         if (!bucket) continue;
-        if (row.status === "SUCCESS") bucket.success += 1;
+        if (row.status === "CONFIRMED") bucket.success += 1;
         else if (row.status === "FAILED") bucket.failed += 1;
         else bucket.pending += 1;
       }
@@ -708,7 +708,7 @@ export async function registerMerchantRoutes(app: FastifyInstance): Promise<void
       const updated = await prisma.transaction.update({
         where: { id },
         data: {
-          status: body.decision === "ACCEPT" ? "SUCCESS" : "FAILED",
+          status: body.decision === "ACCEPT" ? "CONFIRMED" : "FAILED",
           reviewedById: request.auth!.userId,
           reviewedAt: new Date(),
           confidence: body.decision === "ACCEPT" ? 1 : transaction.confidence,
@@ -919,7 +919,7 @@ export async function registerMerchantRoutes(app: FastifyInstance): Promise<void
           fullName: z.string().trim().min(2).max(120),
           role: z.enum([
             "MERCHANT_ADMIN",
-            "MERCHANT_OPERATOR",
+            "MERCHANT_MANAGER",
             "MERCHANT_VIEWER",
           ]),
         })
@@ -1051,7 +1051,7 @@ export async function registerMerchantRoutes(app: FastifyInstance): Promise<void
         [
           row.reference,
           row.provider,
-          String(row.amount),
+          `${Math.floor(row.amountMinor / 100)}.${String(row.amountMinor % 100).padStart(2, "0")}`,
           "BDT",
           row.customerName ?? "",
           row.customerPhone ?? "",

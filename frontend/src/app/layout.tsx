@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
+import { ThemeProvider, themeInitScript } from "@/components/theme/theme-provider";
 import { ToastProvider } from "@/components/ui/toast";
 import "./globals.css";
 
@@ -52,9 +53,16 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       lang="en"
       data-scroll-behavior="smooth"
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
+      suppressHydrationWarning
     >
-      <body className="flex min-h-full flex-col bg-neutral-50 text-ink">
-        <ToastProvider>{children}</ToastProvider>
+      <head>
+        {/* Applies the stored theme before the first paint. */}
+        <script dangerouslySetInnerHTML={{ __html: themeInitScript }} />
+      </head>
+      <body className="flex min-h-full flex-col bg-canvas text-ink">
+        <ThemeProvider>
+          <ToastProvider>{children}</ToastProvider>
+        </ThemeProvider>
       </body>
     </html>
   );

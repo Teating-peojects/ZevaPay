@@ -60,9 +60,9 @@ Failed sign-ins are recorded in the audit log with the reason.
 
 Two independent gates, both on the server.
 
-**Roles.** `MERCHANT_VIEWER` can read but not write. `MERCHANT_OPERATOR`,
-`MERCHANT_ADMIN` and `MERCHANT_OWNER` can write within their own merchant.
-`PLATFORM_ADMIN` can operate the admin console. Adding a team member is
+**Roles.** `MERCHANT_VIEWER` and `MERCHANT_SUPPORT` are read-only.
+`MERCHANT_MANAGER`, `MERCHANT_ADMIN` and `MERCHANT_OWNER` can write within their own merchant.
+`SUPER_ADMIN` and `ADMIN` can operate the admin console. Adding a team member is
 restricted to `MERCHANT_OWNER` and `MERCHANT_ADMIN`.
 
 **Tenants.** The merchant is always resolved from the *session* via
@@ -182,8 +182,8 @@ Being honest about the edges:
   for any device identifier. A per-device credential would be the fix.
 - **The event hub is in-process.** Live events do not survive a restart and
   are not shared between API instances. Redis pub/sub would fix it.
-- **There is no email transport.** Password reset requests are recorded but
-  not delivered, and the reset token lives in memory — a restart loses it.
+- **There is no email transport.** Password reset tokens are stored hashed and
+  expire, but the reset link cannot be delivered until an email provider is configured.
 - **There is no multi-factor authentication.**
 - **There is no malware scanning on uploaded files**, because nothing is
   uploaded.
@@ -207,8 +207,7 @@ That means:
 
 - a merchant can see what a provider's SMS said, and how confident the parser
   is about it — but not a bank-grade confirmation that money arrived;
-- a payment recorded as `SUCCESS` means "the notification said so and the
-  parser was confident", not "the provider confirmed the funds";
+- parser notifications are `PENDING` or `REVIEW`; neither indicates provider confirmation;
 - anything the parser was not confident about goes to a human.
 
 The UI says this in plain language rather than dressing the records up as

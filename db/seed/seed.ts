@@ -24,6 +24,11 @@ const adapter = new PrismaPg({ connectionString });
 const prisma = new PrismaClient({ adapter });
 
 const PASSWORD = "ZevaPay#2026";
+if (process.env.NODE_ENV === "production") {
+  throw new Error("The development seed is disabled when NODE_ENV=production.");
+}
+
+const PERMISSIONS = ["payments:read", "payments:write", "transactions:read", "accounts:read", "accounts:write", "customers:read", "customers:write", "invoices:read", "invoices:write", "payment_links:read", "payment_links:write", "devices:read", "devices:write", "api_keys:read", "api_keys:write", "webhooks:read", "webhooks:write", "reports:read", "team:read", "team:write", "billing:read", "settings:read", "settings:write", "merchants:manage", "admin:manage"] as const;
 
 const MERCHANTS = [
   {
@@ -68,7 +73,7 @@ const STAFF = [
   {
     email: "operator@dhanmondi.test",
     fullName: "Ayesha Siddika",
-    role: "MERCHANT_OPERATOR" as const,
+    role: "MERCHANT_MANAGER" as const,
     merchantIndex: 0,
   },
   {
@@ -199,9 +204,9 @@ interface SeedTransaction {
   deviceIndex: number;
   provider: "BKASH" | "NAGAD" | "ROCKET" | "UPAY";
   amount: number;
-  customerName: string;
+  customerName: string | null;
   customerPhone: string | null;
-  status: "SUCCESS" | "PENDING" | "REVIEW" | "FAILED";
+  status: "PENDING" | "REVIEW" | "FAILED";
   confidence: number;
   providerRef: string | null;
   rawNotification: string;
@@ -217,7 +222,7 @@ const TRANSACTIONS: SeedTransaction[] = [
     amount: 2450,
     customerName: "Rakib Chowdhury",
     customerPhone: "01723445566",
-    status: "SUCCESS",
+    status: "PENDING",
     confidence: 1,
     providerRef: "8H2K4L9M",
     rawNotification:
@@ -276,7 +281,7 @@ const TRANSACTIONS: SeedTransaction[] = [
     amount: 3400,
     customerName: "Sadia Islam",
     customerPhone: null,
-    status: "SUCCESS",
+    status: "PENDING",
     confidence: 1,
     providerRef: "UPY993012",
     rawNotification:
@@ -291,7 +296,7 @@ const TRANSACTIONS: SeedTransaction[] = [
     amount: 1750,
     customerName: "Jahangir Alam",
     customerPhone: "01866221334",
-    status: "SUCCESS",
+    status: "PENDING",
     confidence: 1,
     providerRef: "9X1C5V3B",
     rawNotification:
@@ -306,7 +311,7 @@ const TRANSACTIONS: SeedTransaction[] = [
     amount: 620,
     customerName: "Ayesha Siddika",
     customerPhone: "01999112233",
-    status: "SUCCESS",
+    status: "PENDING",
     confidence: 1,
     providerRef: "NGD550144",
     rawNotification:
@@ -321,7 +326,7 @@ const TRANSACTIONS: SeedTransaction[] = [
     amount: 4820,
     customerName: "Kamrul Hasan",
     customerPhone: null,
-    status: "SUCCESS",
+    status: "PENDING",
     confidence: 1,
     providerRef: "2W8E6T4Y",
     rawNotification:
@@ -380,7 +385,7 @@ const TRANSACTIONS: SeedTransaction[] = [
     amount: 1180,
     customerName: "Shahab Uddin",
     customerPhone: null,
-    status: "SUCCESS",
+    status: "PENDING",
     confidence: 1,
     providerRef: "3C7D2E9F",
     rawNotification:
@@ -424,7 +429,7 @@ const TRANSACTIONS: SeedTransaction[] = [
     amount: 2100,
     customerName: "Rafiq Uddin",
     customerPhone: null,
-    status: "SUCCESS",
+    status: "PENDING",
     confidence: 1,
     providerRef: "NGD665301",
     rawNotification:
@@ -453,7 +458,7 @@ const TRANSACTIONS: SeedTransaction[] = [
     amount: 7600,
     customerName: "Nazmul Hasan",
     customerPhone: null,
-    status: "SUCCESS",
+    status: "PENDING",
     confidence: 1,
     providerRef: "5D2F8G4H",
     rawNotification:
@@ -468,7 +473,7 @@ const TRANSACTIONS: SeedTransaction[] = [
     amount: 1875,
     customerName: "Anwar Hossain",
     customerPhone: null,
-    status: "SUCCESS",
+    status: "PENDING",
     confidence: 1,
     providerRef: "NGD778122",
     rawNotification:
@@ -483,7 +488,7 @@ const TRANSACTIONS: SeedTransaction[] = [
     amount: 7400,
     customerName: "Bashundhara Textiles",
     customerPhone: null,
-    status: "SUCCESS",
+    status: "PENDING",
     confidence: 1,
     providerRef: "NGD554411",
     rawNotification:
@@ -507,6 +512,26 @@ async function main() {
 
   // Reset in dependency order.
   await prisma.auditLog.deleteMany();
+  await prisma.verificationToken.deleteMany();
+  await prisma.notification.deleteMany();
+  await prisma.subscription.deleteMany();
+  await prisma.webhookDelivery.deleteMany();
+  await prisma.webhookEndpoint.deleteMany();
+  await prisma.apiRequestLog.deleteMany();
+  await prisma.paymentAttempt.deleteMany();
+  await prisma.payment.deleteMany();
+  await prisma.invoiceItem.deleteMany();
+  await prisma.invoice.deleteMany();
+  await prisma.paymentLink.deleteMany();
+  await prisma.customer.deleteMany();
+  await prisma.brandDomain.deleteMany();
+  await prisma.brand.deleteMany();
+  await prisma.businessProfile.deleteMany();
+  await prisma.memberRole.deleteMany();
+  await prisma.merchantMember.deleteMany();
+  await prisma.rolePermission.deleteMany();
+  await prisma.permission.deleteMany();
+  await prisma.role.deleteMany();
   await prisma.session.deleteMany();
   await prisma.apiKey.deleteMany();
   await prisma.transaction.deleteMany();
@@ -528,14 +553,14 @@ async function main() {
     data: {
       email: "admin@zevapay.test",
       fullName: "Platform Administrator",
-      role: "PLATFORM_ADMIN",
+      role: "SUPER_ADMIN",
       passwordHash,
       phone: "01700000000",
     },
   });
 
   // --- merchants --------------------------------------------------------
-  const merchants = [];
+  const merchants: Array<{ id: string }> = [];
   for (const merchant of MERCHANTS) {
     const created = await prisma.merchant.create({
       data: {
@@ -573,6 +598,34 @@ async function main() {
         passwordHash,
       },
     });
+  }
+
+  const roleNames = ["SUPER_ADMIN", "ADMIN", "SUPPORT", "MERCHANT_OWNER", "MERCHANT_ADMIN", "MERCHANT_MANAGER", "MERCHANT_SUPPORT", "MERCHANT_VIEWER"];
+  const roleRows = new Map<string, { id: string }>();
+  for (const name of roleNames) roleRows.set(name, await prisma.role.create({ data: { name } }));
+  const permissionRows = new Map<string, { id: string }>();
+  for (const key of PERMISSIONS) permissionRows.set(key, await prisma.permission.create({ data: { key, description: `Permission to ${key.replaceAll(":", " ")}` } }));
+  for (const name of roleNames) {
+    const merchantPermissions = PERMISSIONS.filter((key) => !key.startsWith("admin:") && !key.startsWith("merchants:"));
+    const allowed = name === "SUPER_ADMIN" || name === "ADMIN"
+      ? PERMISSIONS
+      : name === "SUPPORT"
+        ? PERMISSIONS.filter((key) => key.endsWith(":read") || key === "merchants:manage")
+        : name === "MERCHANT_OWNER" || name === "MERCHANT_ADMIN"
+          ? merchantPermissions
+          : name === "MERCHANT_MANAGER"
+            ? merchantPermissions.filter((key) => key !== "team:write" && key !== "billing:read")
+            : PERMISSIONS.filter((key) => key.endsWith(":read"));
+    for (const key of allowed) await prisma.rolePermission.create({ data: { roleId: roleRows.get(name)!.id, permissionId: permissionRows.get(key)!.id } });
+  }
+  const merchantUsers = await prisma.user.findMany({ where: { merchantId: { not: null } }, select: { id: true, merchantId: true, role: true } });
+  for (const user of merchantUsers) {
+    const member = await prisma.merchantMember.create({ data: { userId: user.id, merchantId: user.merchantId! } });
+    await prisma.memberRole.create({ data: { memberId: member.id, roleId: roleRows.get(user.role)!.id } });
+  }
+
+  for (const [code, name, monthlyPriceMinor] of [["FREE", "Free", 0], ["STARTER", "Starter", 0], ["GROWTH", "Growth", 99000], ["BUSINESS", "Business", 299000], ["ENTERPRISE", "Enterprise", 0]] as const) {
+    await prisma.plan.upsert({ where: { code }, create: { code, name, monthlyPriceMinor }, update: { name, monthlyPriceMinor } });
   }
 
   // --- payment accounts --------------------------------------------------
@@ -625,7 +678,8 @@ async function main() {
         accountId: accounts[transaction.accountIndex].id,
         deviceId: devices[transaction.deviceIndex].id,
         provider: transaction.provider,
-        amount: transaction.amount,
+        amountMinor: Math.round(transaction.amount * 100),
+        currency: "BDT",
         customerName: transaction.customerName,
         customerPhone: transaction.customerPhone,
         status: transaction.status,

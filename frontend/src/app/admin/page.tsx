@@ -128,7 +128,7 @@ export default async function AdminOverviewPage() {
                   online
                 </CardDescription>
               </div>
-              <span className="flex size-9 items-center justify-center rounded-lg bg-neutral-100">
+              <span className="flex size-9 items-center justify-center rounded-lg bg-elevated">
                 <MonitorSmartphone
                   className="size-4 text-ink-soft"
                   aria-hidden="true"
@@ -140,7 +140,7 @@ export default async function AdminOverviewPage() {
                 {
                   label: "Online",
                   value: deviceCounts.online,
-                  tone: "text-success-600",
+                  tone: "text-success-fg",
                 },
                 {
                   label: "Offline",
@@ -150,7 +150,7 @@ export default async function AdminOverviewPage() {
                 {
                   label: "Pending",
                   value: deviceCounts.pending,
-                  tone: "text-warning-600",
+                  tone: "text-warning-fg",
                 },
               ].map((entry) => (
                 <div
@@ -165,7 +165,7 @@ export default async function AdminOverviewPage() {
               ))}
               <Link
                 href="/admin/devices"
-                className="mt-1 inline-flex items-center gap-1 text-[13px] font-medium text-brand-700 transition-colors hover:text-brand-800"
+                className="mt-1 inline-flex items-center gap-1 text-[13px] font-medium text-brand-link transition-colors hover:text-brand-link-hover"
               >
                 Manage devices
                 <ArrowRight className="size-3.5" aria-hidden="true" />
@@ -179,7 +179,7 @@ export default async function AdminOverviewPage() {
                 <CardTitle>Merchant registrations</CardTitle>
                 <CardDescription>Recently joined the platform</CardDescription>
               </div>
-              <span className="flex size-9 items-center justify-center rounded-lg bg-neutral-100">
+              <span className="flex size-9 items-center justify-center rounded-lg bg-elevated">
                 <CircleCheck
                   className="size-4 text-ink-soft"
                   aria-hidden="true"
@@ -201,8 +201,8 @@ export default async function AdminOverviewPage() {
                 </div>
               ))}
               <Link
-                href="/admin/users"
-                className="mt-1 inline-flex items-center gap-1 text-[13px] font-medium text-brand-700 transition-colors hover:text-brand-800"
+                href="/admin/merchants"
+                className="mt-1 inline-flex items-center gap-1 text-[13px] font-medium text-brand-link transition-colors hover:text-brand-link-hover"
               >
                 Manage merchants
                 <ArrowRight className="size-3.5" aria-hidden="true" />

@@ -6,15 +6,20 @@ import { Check, Eye, Receipt, X } from "lucide-react";
 import { PageHeader } from "@/components/layout/page-header";
 import { ProviderBadge } from "@/components/shared/provider-badge";
 import { TransactionStatusBadge } from "@/components/shared/status-badge";
-import { DataTable, type Column } from "@/components/shared/data-table";
+import { DataTable, type Column, type SortState } from "@/components/shared/data-table";
 import { LiveIndicator } from "@/components/shared/live-indicator";
-import { TransactionDetailsModal } from "@/components/shared/transaction-details-modal";
+import { TransactionDetailsBody } from "@/components/shared/transaction-details";
+import { Alert } from "@/components/ui/alert";
+import { Button } from "@/components/ui/button";
+import { Drawer } from "@/components/ui/drawer";
 import { useToast } from "@/components/ui/toast";
 import { apiFetch } from "@/lib/api-client";
 import { formatBDT, formatDateTimeShort } from "@/lib/format";
+import { dateRangeBounds } from "@/lib/date-range";
+import { downloadCsv, exportDateStamp } from "@/lib/download";
+import { parseAmount } from "@/lib/money";
 import { useServerTable } from "@/hooks/use-server-table";
 import { useLiveEvents } from "@/hooks/use-live-events";
-import { dateRangeBounds } from "@/lib/date-range";
 import type { ApiTransaction } from "@/types/api";
 
 export function TransactionsList() {
@@ -22,6 +27,18 @@ export function TransactionsList() {
   const { toast } = useToast();
   const [selected, setSelected] = React.useState<ApiTransaction | null>(null);
   const [reviewing, setReviewing] = React.useState(false);
+
+  // The API has no amount filter, so the range is applied to the rows that
+  // are on screen. The hint under the inputs says as much.
+  const [amount, setAmount] = React.useState({ min: "", max: "" });
+
+  // The API always returns the newest records first and has no sort
+  // parameter, so sorting is applied to the page the table holds. The note
+  // under the table says so.
+  const [sort, setSort] = React.useState<SortState>({
+    sort: "date",
+    order: "desc",
+  });
 
   const table = useServerTable<ApiTransaction>({
     path: "/api/v1/merchant/transactions",
@@ -60,7 +77,7 @@ export function TransactionsList() {
         title: decision === "ACCEPT" ? "Payment accepted" : "Payment rejected",
         description:
           decision === "ACCEPT"
-            ? `${transaction.reference} was recorded as a successful payment.`
+            ? `${transaction.reference} was recorded as confirmed from a notification. It has not been checked against the provider's own records.`
             : `${transaction.reference} was marked as failed.`,
         tone: decision === "ACCEPT" ? "success" : "warning",
       });
@@ -77,6 +94,65 @@ export function TransactionsList() {
     }
   }
 
+  /**
+   * Exports the rows currently on screen.
+   *
+   * The API exposes a CSV export endpoint, but it ignores every filter and
+   * always returns the newest 5,000 records. Exporting what the reader is
+   * actually looking at is more useful and more honest, so the file is built
+   * in the browser from the rows on screen.
+   */
+  function handleExport() {
+    const rows = table.rows.filter((transaction) => {
+      const min = parseAmount(amount.min);
+      const max = parseAmount(amount.max);
+      if (min !== null && transaction.amount < min) return false;
+      if (max !== null && transaction.amount > max) return false;
+      return true;
+    });
+
+    if (rows.length === 0) {
+      toast({
+        title: "Nothing to export",
+        description: "No transactions on this page match the current filters.",
+        tone: "warning",
+      });
+      return;
+    }
+
+    downloadCsv(
+      `zevapay-transactions-${exportDateStamp()}.csv`,
+      [
+        "reference",
+        "provider",
+        "amount",
+        "currency",
+        "customer",
+        "phone",
+        "status",
+        "confidence",
+        "occurredAt",
+      ],
+      rows.map((transaction) => [
+        transaction.reference,
+        transaction.provider,
+        transaction.amount,
+        "BDT",
+        transaction.customerName ?? "",
+        transaction.customerPhone ?? "",
+        transaction.status,
+        transaction.confidence,
+        transaction.occurredAt,
+      ]),
+    );
+
+    toast({
+      title: "Export downloaded",
+      description: `${rows.length} transaction${rows.length === 1 ? "" : "s"} from this page were written to a CSV file.`,
+      tone: "success",
+    });
+  }
+
   const columns: Column<ApiTransaction>[] = [
     {
       key: "reference",
@@ -86,6 +162,7 @@ export function TransactionsList() {
           {transaction.reference}
         </span>
       ),
+      sortValue: (transaction) => transaction.reference,
     },
     {
       key: "provider",
@@ -93,6 +170,7 @@ export function TransactionsList() {
       render: (transaction) => (
         <ProviderBadge provider={transaction.provider} size="sm" />
       ),
+      sortValue: (transaction) => transaction.provider,
     },
     {
       key: "amount",
@@ -103,6 +181,7 @@ export function TransactionsList() {
           {formatBDT(transaction.amount)}
         </span>
       ),
+      sortValue: (transaction) => transaction.amount,
     },
     {
       key: "customer",
@@ -117,15 +196,18 @@ export function TransactionsList() {
           </span>
         </span>
       ),
+      sortValue: (transaction) => transaction.customerName ?? "",
     },
     {
       key: "date",
       header: "Date",
+      align: "right",
       render: (transaction) => (
         <span className="text-[13px] text-ink-muted">
           {formatDateTimeShort(transaction.occurredAt)}
         </span>
       ),
+      sortValue: (transaction) => transaction.occurredAt,
     },
     {
       key: "status",
@@ -140,8 +222,11 @@ export function TransactionsList() {
           ) : null}
         </span>
       ),
+      sortValue: (transaction) => transaction.status,
     },
   ];
+
+  const awaitingReview = selected?.status === "REVIEW";
 
   return (
     <div className="flex flex-col gap-6">
@@ -152,7 +237,7 @@ export function TransactionsList() {
           <div className="flex items-center gap-3">
             <LiveIndicator status={liveStatus} />
             {table.total > 0 ? (
-              <div className="flex items-center gap-2 rounded-lg border border-neutral-200 bg-white px-3.5 py-2">
+              <div className="flex items-center gap-2 rounded-lg border border-line bg-surface px-3.5 py-2">
                 <span className="text-[13px] text-ink-muted">Total</span>
                 <span className="text-[13px] font-semibold text-ink">
                   {table.total}
@@ -162,6 +247,12 @@ export function TransactionsList() {
           </div>
         }
       />
+
+      <Alert tone="info" title="Live data">
+        These are the transactions your devices have recorded. A record leaves
+        this list marked &ldquo;confirmed from SMS&rdquo; — a notification was
+        received and matched, not checked with the provider.
+      </Alert>
 
       <DataTable
         columns={columns}
@@ -175,10 +266,10 @@ export function TransactionsList() {
             id: "status",
             label: "All statuses",
             options: [
-              { value: "SUCCESS", label: "Success" },
-              { value: "PENDING", label: "Pending" },
-              { value: "REVIEW", label: "Review" },
-              { value: "FAILED", label: "Failed" },
+              { value: "SUCCESS", label: "Confirmed from SMS" },
+              { value: "PENDING", label: "Awaiting verification" },
+              { value: "REVIEW", label: "Needs review" },
+              { value: "FAILED", label: "Verification failed" },
             ],
           },
           {
@@ -192,6 +283,17 @@ export function TransactionsList() {
             ],
           },
         ]}
+        amountFilter={{
+          min: amount.min,
+          max: amount.max,
+          onChange: setAmount,
+          match: (transaction, min, max) => {
+            if (min !== null && transaction.amount < min) return false;
+            if (max !== null && transaction.amount > max) return false;
+            return true;
+          },
+          hint: "Filters the rows on this page. The API does not filter by amount.",
+        }}
         showDateFilter
         emptyTitle="No transactions recorded"
         emptyDescription="Transactions appear here once a connected device reports a payment notification."
@@ -218,7 +320,7 @@ export function TransactionsList() {
               ]
             : []),
         ]}
-        hideExport
+        onRowClick={(transaction) => setSelected(transaction)}
         server={{
           total: table.total,
           page: table.page,
@@ -226,28 +328,59 @@ export function TransactionsList() {
           query: table.query,
           filters: table.filters,
           dateRange: table.dateRange,
+          sort,
           onPageChange: table.setPage,
           onQueryChange: table.setQuery,
           onFilterChange: table.setFilter,
           onDateRangeChange: table.setDateRange,
+          onSortChange: setSort,
+          onExport: handleExport,
+          hint: "Sorting applies to the rows on this page. The API returns the newest records first and cannot sort the full set.",
         }}
       />
 
-      <TransactionDetailsModal
-        transaction={selected}
+      <Drawer
+        open={selected !== null}
         onClose={() => setSelected(null)}
-        onAccept={
-          selected?.status === "REVIEW"
-            ? () => void handleReview(selected, "ACCEPT")
-            : undefined
+        title="Transaction details"
+        description={selected?.reference}
+        size="lg"
+        footer={
+          awaitingReview ? (
+            <>
+              <Button
+                variant="outline"
+                onClick={() => {
+                  if (selected) void handleReview(selected, "REJECT");
+                }}
+                loading={reviewing}
+                type="button"
+              >
+                <X className="size-4" aria-hidden="true" />
+                Reject
+              </Button>
+              <Button
+                onClick={() => {
+                  if (selected) void handleReview(selected, "ACCEPT");
+                }}
+                loading={reviewing}
+                type="button"
+              >
+                <Check className="size-4" aria-hidden="true" />
+                Accept payment
+              </Button>
+            </>
+          ) : (
+            <Button variant="outline" onClick={() => setSelected(null)} type="button">
+              Close
+            </Button>
+          )
         }
-        onReject={
-          selected?.status === "REVIEW"
-            ? () => void handleReview(selected, "REJECT")
-            : undefined
-        }
-        reviewing={reviewing}
-      />
+      >
+        {selected ? (
+          <TransactionDetailsBody transaction={selected} />
+        ) : null}
+      </Drawer>
     </div>
   );
 }

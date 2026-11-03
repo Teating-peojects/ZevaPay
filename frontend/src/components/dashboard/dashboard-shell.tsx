@@ -13,6 +13,9 @@ export interface DashboardUser {
 /**
  * Shared dashboard shell. Renders a fixed sidebar on large screens and an
  * off-canvas drawer on small screens, with a sticky top navigation bar.
+ *
+ * The desktop sidebar can collapse to an icon rail; the sidebar owns that
+ * state and remembers it between visits.
  */
 export function DashboardShell({
   sections,
@@ -50,7 +53,7 @@ export function DashboardShell({
   }, [mobileNavOpen]);
 
   return (
-    <div className="flex min-h-full bg-neutral-50">
+    <div className="flex min-h-full bg-canvas">
       {/* Desktop sidebar */}
       <div className="sticky top-0 hidden h-screen lg:block">
         <Sidebar
@@ -65,7 +68,7 @@ export function DashboardShell({
       {mobileNavOpen ? (
         <div className="fixed inset-0 z-50 lg:hidden">
           <div
-            className="absolute inset-0 bg-ink/40"
+            className="absolute inset-0 bg-overlay"
             onClick={() => setMobileNavOpen(false)}
             aria-hidden="true"
           />

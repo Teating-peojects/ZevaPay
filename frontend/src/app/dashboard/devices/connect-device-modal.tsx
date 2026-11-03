@@ -2,6 +2,7 @@
 
 import * as React from "react";
 import { Check, Copy, RefreshCw } from "lucide-react";
+import { QRCodeSVG } from "qrcode.react";
 import { Button } from "@/components/ui/button";
 import { Modal } from "@/components/ui/modal";
 import { Alert } from "@/components/ui/alert";
@@ -85,13 +86,19 @@ export function ConnectDeviceModal({
 
   const expiresAt = pairing ? new Date(pairing.expiresAt) : null;
 
+  // What the QR code encodes. It is the same code, so scanning it is the
+  // same act as typing it in.
+  const pairingPayload = pairing
+    ? `zevapay://pair?code=${encodeURIComponent(pairing.code)}`
+    : "";
+
   return (
     <Modal
       open={open}
       onClose={onClose}
       title="Connect device"
       description="Pair an Android SMS Bridge device with this merchant."
-      size="sm"
+      size="md"
       footer={
         <>
           <Button variant="outline" onClick={onClose} type="button">
@@ -149,7 +156,7 @@ export function ConnectDeviceModal({
               {error}
             </Alert>
           ) : null}
-          <div className="flex items-center gap-3 rounded-lg border border-neutral-200 bg-neutral-50 px-4 py-4">
+          <div className="flex items-center gap-3 rounded-lg border border-line bg-elevated px-4 py-4">
             <code className="flex-1 font-mono text-lg font-semibold tracking-widest text-ink">
               {loading && !pairing ? "·······" : (pairing?.code ?? "—")}
             </code>
@@ -162,7 +169,7 @@ export function ConnectDeviceModal({
               className="shrink-0"
             >
               {copied ? (
-                <Check className="size-3.5 text-success-600" aria-hidden="true" />
+                <Check className="size-3.5 text-success-fg" aria-hidden="true" />
               ) : (
                 <Copy className="size-3.5" aria-hidden="true" />
               )}
@@ -191,15 +198,51 @@ export function ConnectDeviceModal({
           </div>
         </div>
 
+        {/* QR preview */}
+        <div className="flex flex-col gap-3 rounded-lg border border-line bg-elevated px-4 py-4">
+          <p className="text-[13px] font-medium text-ink-soft">
+            Scan instead of typing
+          </p>
+          <div className="flex flex-col items-center gap-3 sm:flex-row sm:items-start sm:gap-5">
+            <div className="rounded-lg border border-line bg-surface p-3">
+              {pairingPayload ? (
+                <QRCodeSVG
+                  value={pairingPayload}
+                  size={140}
+                  level="M"
+                  marginSize={0}
+                  fgColor="#0f172a"
+                  bgColor="#ffffff"
+                  title="ZevaPay device pairing code"
+                />
+              ) : (
+                <div className="flex size-[140px] items-center justify-center text-[12px] text-ink-faint">
+                  Waiting for a code
+                </div>
+              )}
+            </div>
+            <div className="min-w-0 text-[13px] leading-relaxed text-ink-muted">
+              <p>
+                Point the ZevaPay Android app at this code and it will fill the
+                pairing code in for you.
+              </p>
+              <p className="mt-2">
+                The QR image is generated in your browser from the same pairing
+                code shown above. It expires with the code and cannot be reused.
+              </p>
+            </div>
+          </div>
+        </div>
+
         <ol className="flex flex-col gap-2.5">
           {[
             "Open the ZevaPay Android app on the device.",
             "Go to Settings → Connect Device.",
-            "Enter the pairing code shown above.",
+            "Enter the pairing code shown above, or scan the QR code.",
             "The device will appear here as soon as it pairs.",
           ].map((step, index) => (
             <li key={step} className="flex gap-2.5">
-              <span className="flex size-5 shrink-0 items-center justify-center rounded-full bg-neutral-200 text-[11px] font-semibold text-ink-soft">
+              <span className="flex size-5 shrink-0 items-center justify-center rounded-full bg-elevated text-[11px] font-semibold text-ink-soft">
                 {index + 1}
               </span>
               <span className="text-[13px] leading-relaxed text-ink-soft">

@@ -15,7 +15,7 @@ export const Label = React.forwardRef<
   >
     {children}
     {required ? (
-      <span className="ml-0.5 text-danger-600" aria-hidden="true">
+      <span className="ml-0.5 text-danger-fg" aria-hidden="true">
         *
       </span>
     ) : null}
@@ -24,9 +24,9 @@ export const Label = React.forwardRef<
 Label.displayName = "Label";
 
 const fieldBase =
-  "w-full rounded-lg border border-neutral-300 bg-white px-3 text-sm text-ink placeholder:text-ink-faint " +
-  "transition-colors focus:border-brand-600 focus:outline-none focus:ring-2 focus:ring-brand-600/15 " +
-  "disabled:cursor-not-allowed disabled:bg-neutral-50 disabled:text-ink-faint";
+  "w-full rounded-lg border border-line-strong bg-surface px-3 text-sm text-ink placeholder:text-ink-faint " +
+  "transition-colors focus:border-brand-link focus:outline-none focus:ring-2 focus:ring-brand-solid/15 " +
+  "disabled:cursor-not-allowed disabled:bg-elevated disabled:text-ink-faint";
 
 export interface InputProps extends React.InputHTMLAttributes<HTMLInputElement> {
   /** Validation message. Presence switches the field to the error style. */
@@ -50,7 +50,7 @@ export const Input = React.forwardRef<HTMLInputElement, InputProps>(
           className={cn(
             fieldBase,
             "h-10",
-            error && "border-danger-500 focus:border-danger-600 focus:ring-danger-600/15",
+            error && "border-danger-500 focus:border-danger-fg focus:ring-danger-fg/15",
             className,
           )}
           {...props}
@@ -58,7 +58,7 @@ export const Input = React.forwardRef<HTMLInputElement, InputProps>(
         {error ? (
           <p
             id={describedBy}
-            className="mt-1.5 text-[13px] text-danger-600"
+            className="mt-1.5 text-[13px] text-danger-fg"
             role="alert"
           >
             {error}
@@ -95,7 +95,7 @@ export const Select = React.forwardRef<HTMLSelectElement, SelectProps>(
           className={cn(
             fieldBase,
             "h-10 cursor-pointer appearance-none bg-[length:16px] bg-[right_0.65rem_center] bg-no-repeat pr-9",
-            error && "border-danger-500 focus:border-danger-600 focus:ring-danger-600/15",
+            error && "border-danger-500 focus:border-danger-fg focus:ring-danger-fg/15",
             className,
           )}
           style={{
@@ -109,7 +109,7 @@ export const Select = React.forwardRef<HTMLSelectElement, SelectProps>(
         {error ? (
           <p
             id={describedBy}
-            className="mt-1.5 text-[13px] text-danger-600"
+            className="mt-1.5 text-[13px] text-danger-fg"
             role="alert"
           >
             {error}
@@ -146,7 +146,7 @@ export const Textarea = React.forwardRef<HTMLTextAreaElement, TextareaProps>(
           className={cn(
             fieldBase,
             "min-h-24 py-2.5 leading-relaxed",
-            error && "border-danger-500 focus:border-danger-600 focus:ring-danger-600/15",
+            error && "border-danger-500 focus:border-danger-fg focus:ring-danger-fg/15",
             className,
           )}
           {...props}
@@ -154,7 +154,7 @@ export const Textarea = React.forwardRef<HTMLTextAreaElement, TextareaProps>(
         {error ? (
           <p
             id={describedBy}
-            className="mt-1.5 text-[13px] text-danger-600"
+            className="mt-1.5 text-[13px] text-danger-fg"
             role="alert"
           >
             {error}
@@ -194,8 +194,8 @@ export function Checkbox({
         aria-invalid={error ? true : undefined}
         aria-describedby={error && inputId ? `${inputId}-error` : undefined}
         className={cn(
-          "mt-0.5 size-4 shrink-0 cursor-pointer rounded border-neutral-300 text-brand-700 accent-brand-700",
-          "focus:outline-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-600",
+          "mt-0.5 size-4 shrink-0 cursor-pointer rounded border-line-strong text-brand-link accent-brand-solid",
+          "focus:outline-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-solid",
           className,
         )}
         {...props}
@@ -213,7 +213,7 @@ export function Checkbox({
         {error ? (
           <p
             id={inputId ? `${inputId}-error` : undefined}
-            className="mt-1 text-[13px] text-danger-600"
+            className="mt-1 text-[13px] text-danger-fg"
             role="alert"
           >
             {error}
@@ -269,12 +269,12 @@ export function Switch({
         className={cn(
           "relative inline-flex h-5 w-9 shrink-0 items-center rounded-full transition-colors",
           "disabled:cursor-not-allowed disabled:opacity-50",
-          checked ? "bg-brand-700" : "bg-neutral-300",
+          checked ? "bg-brand-solid" : "bg-line-strong",
         )}
       >
         <span
           className={cn(
-            "inline-block size-4 transform rounded-full bg-white shadow-sm transition-transform",
+            "inline-block size-4 transform rounded-full bg-surface shadow-sm transition-transform",
             checked ? "translate-x-4" : "translate-x-0.5",
           )}
         />

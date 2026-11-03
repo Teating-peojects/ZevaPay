@@ -12,7 +12,7 @@ export async function registerStreamRoutes(app: FastifyInstance): Promise<void> 
     "/api/v1/stream",
     { preHandler: [app.authenticate] },
     async (request, reply) => {
-      const isPlatformAdmin = request.auth!.role === "PLATFORM_ADMIN";
+      const isPlatformAdmin = ["SUPER_ADMIN", "ADMIN", "SUPPORT"].includes(request.auth!.role);
       const merchantId = request.auth!.merchantId;
 
       if (!isPlatformAdmin && !merchantId) {

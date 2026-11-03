@@ -1,75 +1,96 @@
 "use client";
 
 import * as React from "react";
-import { Eye, Store, UserCheck, UserX } from "lucide-react";
+import { Eye, UserCheck, UserX, Users } from "lucide-react";
 import { PageHeader } from "@/components/layout/page-header";
-import { MerchantStatusBadge } from "@/components/shared/status-badge";
 import { DataTable, type Column } from "@/components/shared/data-table";
+import { StatCard } from "@/components/dashboard/stat-card";
+import { Alert } from "@/components/ui/alert";
+import { Badge } from "@/components/ui/badge";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { useToast } from "@/components/ui/toast";
-import { formatDate } from "@/lib/format";
 import { apiFetch } from "@/lib/api-client";
+import { formatDateTime, formatNumber } from "@/lib/format";
 import { useServerTable } from "@/hooks/use-server-table";
 import { useLiveEvents } from "@/hooks/use-live-events";
-import type { ApiMerchant } from "@/types/api";
+import type { ApiUser, UserRole } from "@/types/api";
 import { UserDetailsModal } from "./user-details-modal";
 
+/**
+ * Every person who can sign in to ZevaPay.
+ *
+ * This page calls the real API: `GET /api/v1/admin/users` lists the platform
+ * administrators and the merchant staff, and `PATCH /api/v1/admin/users/:id`
+ * activates or deactivates one. Deactivating a user also terminates their
+ * sessions on the server, so this is a real switch.
+ */
+
+const ROLE_LABELS: Record<UserRole, string> = {
+  PLATFORM_ADMIN: "Platform admin",
+  MERCHANT_OWNER: "Owner",
+  MERCHANT_ADMIN: "Admin",
+  MERCHANT_OPERATOR: "Operator",
+  MERCHANT_VIEWER: "Viewer",
+};
+
+const ROLE_TONES: Record<UserRole, "brand" | "neutral"> = {
+  PLATFORM_ADMIN: "brand",
+  MERCHANT_OWNER: "neutral",
+  MERCHANT_ADMIN: "neutral",
+  MERCHANT_OPERATOR: "neutral",
+  MERCHANT_VIEWER: "neutral",
+};
+
 type PendingAction = {
-  merchant: ApiMerchant;
-  action: "activate" | "suspend" | "approve";
+  user: ApiUser;
+  action: "activate" | "deactivate";
 };
 
 export default function AdminUsersPage() {
   const { toast } = useToast();
-  const [selected, setSelected] = React.useState<ApiMerchant | null>(null);
+  const [selected, setSelected] = React.useState<ApiUser | null>(null);
   const [pending, setPending] = React.useState<PendingAction | null>(null);
   const [updating, setUpdating] = React.useState(false);
 
-  const table = useServerTable<ApiMerchant>({
-    path: "/api/v1/admin/merchants",
+  const table = useServerTable<ApiUser>({
+    path: "/api/v1/admin/users",
     pageSize: 10,
     buildQuery: (state) => ({
       q: state.query,
-      status: state.filters.status,
+      role: state.filters.role,
+      isActive: state.filters.isActive,
     }),
   });
 
   useLiveEvents((type) => {
-    if (type === "merchant.updated" || type === "user.updated") {
-      table.refresh();
-    }
+    if (type === "user.updated") table.refresh();
   });
 
   async function handleConfirm() {
     if (!pending) return;
     setUpdating(true);
 
-    const status =
-      pending.action === "activate" || pending.action === "approve"
-        ? "ACTIVE"
-        : "SUSPENDED";
+    const isActive = pending.action === "activate";
 
     try {
-      await apiFetch(`/api/v1/admin/merchants/${pending.merchant.id}`, {
+      await apiFetch(`/api/v1/admin/users/${pending.user.id}`, {
         method: "PATCH",
-        body: { status },
+        body: { isActive },
       });
 
       toast({
-        title:
-          status === "ACTIVE" ? "Merchant activated" : "Merchant suspended",
-        description:
-          status === "ACTIVE"
-            ? `${pending.merchant.businessName} can now use ZevaPay.`
-            : `${pending.merchant.businessName} has been suspended.`,
-        tone: status === "ACTIVE" ? "success" : "warning",
+        title: isActive ? "Access restored" : "Access removed",
+        description: isActive
+          ? `${pending.user.fullName} can sign in again.`
+          : `${pending.user.fullName} can no longer sign in, and their sessions were ended.`,
+        tone: isActive ? "success" : "warning",
       });
       setPending(null);
       setSelected(null);
       table.refresh();
     } catch {
       toast({
-        title: "Could not update the merchant",
+        title: "Could not update the user",
         description: "Nothing was changed. Please try again.",
         tone: "error",
       });
@@ -78,98 +99,165 @@ export default function AdminUsersPage() {
     }
   }
 
-  const columns: Column<ApiMerchant>[] = [
+  const columns: Column<ApiUser>[] = [
     {
-      key: "businessName",
-      header: "Business name",
-      render: (merchant) => (
-        <span className="text-[13px] font-medium text-ink">
-          {merchant.businessName}
+      key: "fullName",
+      header: "Person",
+      render: (user) => (
+        <span className="block">
+          <span className="block text-[13px] font-medium text-ink">
+            {user.fullName}
+          </span>
+          <span className="block text-[12px] text-ink-muted">{user.email}</span>
         </span>
       ),
+      sortValue: (user) => user.fullName,
     },
     {
-      key: "ownerName",
-      header: "Owner",
-      render: (merchant) => (
-        <span className="text-[13px] text-ink-soft">{merchant.ownerName}</span>
+      key: "role",
+      header: "Role",
+      render: (user) => (
+        <Badge tone={ROLE_TONES[user.role]}>{ROLE_LABELS[user.role]}</Badge>
       ),
+      sortValue: (user) => user.role,
     },
     {
-      key: "email",
-      header: "Email",
-      render: (merchant) => (
-        <span className="text-[13px] text-ink-soft">{merchant.email}</span>
+      key: "merchantName",
+      header: "Merchant",
+      render: (user) => (
+        <span className="text-[13px] text-ink-soft">
+          {user.merchantName ?? "ZevaPay Platform"}
+        </span>
       ),
+      sortValue: (user) => user.merchantName ?? "",
     },
     {
-      key: "registrationDate",
-      header: "Registered",
-      render: (merchant) => (
+      key: "isActive",
+      header: "Access",
+      render: (user) => (
+        <Badge tone={user.isActive ? "success" : "danger"} dot>
+          {user.isActive ? "Active" : "Deactivated"}
+        </Badge>
+      ),
+      sortValue: (user) => (user.isActive ? 1 : 0),
+    },
+    {
+      key: "lastLoginAt",
+      header: "Last sign-in",
+      align: "right",
+      render: (user) => (
         <span className="text-[13px] text-ink-muted">
-          {formatDate(merchant.registrationDate)}
+          {user.lastLoginAt ? formatDateTime(user.lastLoginAt) : "Never signed in"}
         </span>
       ),
-    },
-    {
-      key: "status",
-      header: "Account status",
-      render: (merchant) => <MerchantStatusBadge status={merchant.status} />,
+      sortValue: (user) => user.lastLoginAt ?? "",
     },
   ];
+
+  const rows = table.rows;
+  const platformStaff = rows.filter(
+    (row) => row.role === "PLATFORM_ADMIN",
+  ).length;
+  const deactivated = rows.filter((row) => !row.isActive).length;
 
   return (
     <div className="flex flex-col gap-6">
       <PageHeader
         title="Users"
-        description="Merchants registered on the ZevaPay platform."
+        description="Everyone who can sign in — platform staff and merchant staff."
       />
+
+      <Alert tone="info" title="Live data">
+        These accounts come from the platform&apos;s own user records.
+        Deactivating someone ends their sessions immediately, so the change
+        takes effect on the server.
+      </Alert>
+
+      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+        <StatCard
+          label="Users on this page"
+          value={formatNumber(rows.length)}
+          hint="Platform and merchant staff"
+          icon={Users}
+        />
+        <StatCard
+          label="Platform staff"
+          value={formatNumber(platformStaff)}
+          hint="On this page"
+          icon={UserCheck}
+        />
+        <StatCard
+          label="Total accounts"
+          value={formatNumber(table.total)}
+          hint="Across the platform"
+          icon={Users}
+        />
+        <StatCard
+          label="Deactivated"
+          value={formatNumber(deactivated)}
+          hint="On this page"
+          icon={UserX}
+          tone={deactivated > 0 ? "warning" : "success"}
+        />
+      </div>
 
       <DataTable
         columns={columns}
-        rows={table.rows}
+        rows={rows}
         loading={table.loading}
         error={table.error ?? undefined}
         showSearch
-        searchPlaceholder="Search by business, owner, or email"
+        searchPlaceholder="Search by name, email, or phone"
         filters={[
           {
-            id: "status",
-            label: "All statuses",
+            id: "role",
+            label: "All roles",
             options: [
-              { value: "ACTIVE", label: "Active" },
-              { value: "PENDING_REVIEW", label: "In Review" },
-              { value: "SUSPENDED", label: "Suspended" },
+              { value: "PLATFORM_ADMIN", label: "Platform admin" },
+              { value: "MERCHANT_OWNER", label: "Owner" },
+              { value: "MERCHANT_ADMIN", label: "Admin" },
+              { value: "MERCHANT_OPERATOR", label: "Operator" },
+              { value: "MERCHANT_VIEWER", label: "Viewer" },
+            ],
+          },
+          {
+            id: "isActive",
+            label: "All access states",
+            options: [
+              { value: "true", label: "Active" },
+              { value: "false", label: "Deactivated" },
             ],
           },
         ]}
-        emptyTitle="No merchants found"
-        emptyDescription="Merchants appear here once they register for a ZevaPay account."
-        emptyIcon={Store}
-        actions={(merchant) => [
+        emptyTitle="No users found"
+        emptyDescription="Users appear here once they register for a ZevaPay account."
+        emptyIcon={Users}
+        actions={(user) => [
           {
-            label: "View details",
+            label: "View user",
             icon: Eye,
-            onSelect: () => setSelected(merchant),
+            onSelect: () => setSelected(user),
           },
-          ...(merchant.status !== "ACTIVE"
+          ...(user.isActive
             ? [
                 {
-                  label: "Activate merchant",
-                  icon: UserCheck,
+                  label: "Remove access",
+                  icon: UserX,
+                  variant: "danger" as const,
                   onSelect: () =>
-                    setPending({ merchant, action: "activate" as const }),
+                    setPending({ user, action: "deactivate" as const }),
                 },
               ]
             : [
                 {
-                  label: "Suspend merchant",
-                  icon: UserX,
-                  variant: "danger" as const,
-                  onSelect: () => setPending({ merchant, action: "suspend" as const }),
+                  label: "Restore access",
+                  icon: UserCheck,
+                  onSelect: () =>
+                    setPending({ user, action: "activate" as const }),
                 },
               ]),
         ]}
+        onRowClick={(user) => setSelected(user)}
         hideExport
         server={{
           total: table.total,
@@ -183,27 +271,24 @@ export default function AdminUsersPage() {
         }}
       />
 
-      <UserDetailsModal
-        merchant={selected}
-        onClose={() => setSelected(null)}
-      />
+      <UserDetailsModal user={selected} onClose={() => setSelected(null)} />
 
       <ConfirmDialog
         open={pending !== null}
         title={
-          pending?.action === "suspend"
-            ? "Suspend merchant?"
-            : "Activate merchant?"
+          pending?.action === "deactivate"
+            ? "Remove this user's access?"
+            : "Restore this user's access?"
         }
         description={
-          pending?.action === "suspend"
-            ? `${pending?.merchant.businessName} will be suspended and lose access to the dashboard.`
-            : `${pending?.merchant.businessName} will be activated and can use ZevaPay.`
+          pending?.action === "deactivate"
+            ? `${pending?.user.fullName} will be signed out everywhere and will not be able to sign in again until access is restored.`
+            : `${pending?.user.fullName} will be able to sign in again.`
         }
         confirmLabel={
-          pending?.action === "suspend" ? "Suspend merchant" : "Activate merchant"
+          pending?.action === "deactivate" ? "Remove access" : "Restore access"
         }
-        tone={pending?.action === "suspend" ? "danger" : "primary"}
+        tone={pending?.action === "deactivate" ? "danger" : "primary"}
         loading={updating}
         onConfirm={handleConfirm}
         onCancel={() => setPending(null)}

@@ -134,12 +134,11 @@ npm --prefix backend run simulate -- --email owner@dhanmondi.test --count 10
 `backend/src/parser/` holds one parser per provider. Each returns the amount,
 the sender, the provider reference and a **confidence score** between 0 and 1.
 
-- Confidence **≥ 0.9** → recorded as `SUCCESS` (or `FAILED` when the
-  notification reports a failure).
+- Confidence **≥ 0.9** → recorded as `PENDING` until independently verified.
 - Confidence **< 0.9** → recorded as `REVIEW` and routed to the review queue,
   where a merchant accepts or rejects it.
 
-The threshold is configurable via `AUTO_ACCEPT_CONFIDENCE`.
+Parser confidence only routes records for review; it never confirms a payment.
 
 ### Live updates
 

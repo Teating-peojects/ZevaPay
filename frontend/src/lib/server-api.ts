@@ -51,7 +51,17 @@ export async function serverFetch<T>(
   }
 }
 
-/** Fetches the current session, or null when the caller is signed out. */
+/**
+ * Fetches the current session, or null when the caller is signed out.
+ *
+ * A network failure is treated the same as an expired session: we cannot
+ * confirm who the caller is, so the dashboard sends them to the sign-in
+ * page rather than failing the whole render.
+ */
 export async function getSession(): Promise<SessionResponse | null> {
-  return serverFetch<SessionResponse>("/api/v1/auth/me");
+  try {
+    return await serverFetch<SessionResponse>("/api/v1/auth/me");
+  } catch {
+    return null;
+  }
 }

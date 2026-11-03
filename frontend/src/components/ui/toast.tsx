@@ -69,10 +69,10 @@ export function useToast(): ToastContextValue {
 }
 
 const toneStyles: Record<ToastTone, { icon: React.ComponentType<{ className?: string }>; accent: string }> = {
-  success: { icon: CircleCheck, accent: "text-success-600" },
-  error: { icon: CircleAlert, accent: "text-danger-600" },
-  warning: { icon: TriangleAlert, accent: "text-warning-600" },
-  info: { icon: Info, accent: "text-info-600" },
+  success: { icon: CircleCheck, accent: "text-success-fg" },
+  error: { icon: CircleAlert, accent: "text-danger-fg" },
+  warning: { icon: TriangleAlert, accent: "text-warning-fg" },
+  info: { icon: Info, accent: "text-info-fg" },
 };
 
 function ToastViewport({
@@ -95,7 +95,7 @@ function ToastViewport({
             key={item.id}
             role="status"
             aria-live="polite"
-            className="pointer-events-auto flex w-full max-w-sm items-start gap-3 rounded-lg border border-neutral-200 bg-white px-4 py-3 shadow-overlay"
+            className="pointer-events-auto flex w-full max-w-sm items-start gap-3 rounded-lg border border-line bg-surface px-4 py-3 shadow-overlay"
           >
             <Icon
               className={cn("mt-0.5 size-4 shrink-0", accent)}
@@ -113,7 +113,7 @@ function ToastViewport({
               type="button"
               onClick={() => onDismiss(item.id)}
               aria-label="Dismiss notification"
-              className="-mt-0.5 -mr-1 shrink-0 rounded p-1 text-ink-faint transition-colors hover:bg-neutral-100 hover:text-ink"
+              className="-mt-0.5 -mr-1 shrink-0 rounded p-1 text-ink-faint transition-colors hover:bg-elevated hover:text-ink"
             >
               <X className="size-3.5" aria-hidden="true" />
             </button>

@@ -218,9 +218,9 @@ async function main() {
       console.log(`[${i + 1}] Duplicate ignored (${response.payload.transactionId})`);
     } else {
       const route =
-        response.payload.autoAccepted === true
-          ? `auto-accepted (confidence ${response.payload.confidence})`
-          : `needs review (confidence ${response.payload.confidence})`;
+        response.payload.status === "PENDING"
+          ? `awaiting verification (parser confidence ${response.payload.confidence})`
+          : `needs review (parser confidence ${response.payload.confidence})`;
       console.log(
         `[${i + 1}] ${sample.provider} ${response.payload.reference} → ${response.payload.status} · ${route}`,
       );

@@ -7,6 +7,7 @@ import { LogOut, Menu, Search, Settings, User } from "lucide-react";
 import { Avatar } from "@/components/ui/avatar";
 import { Dropdown } from "@/components/ui/dropdown";
 import { Input } from "@/components/ui/form";
+import { ThemeToggle } from "@/components/theme/theme-toggle";
 import { useToast } from "@/components/ui/toast";
 import { apiFetch } from "@/lib/api-client";
 
@@ -75,12 +76,12 @@ export function TopNav({
   }
 
   return (
-    <header className="sticky top-0 z-30 flex h-16 shrink-0 items-center gap-3 border-b border-neutral-200 bg-white px-4 sm:px-6">
+    <header className="sticky top-0 z-30 flex h-16 shrink-0 items-center gap-3 border-b border-line bg-surface px-4 sm:px-6">
       <button
         type="button"
         onClick={onMenuClick}
         aria-label="Open navigation"
-        className="inline-flex size-9 shrink-0 items-center justify-center rounded-lg text-ink-soft transition-colors hover:bg-neutral-100 lg:hidden"
+        className="inline-flex size-9 shrink-0 items-center justify-center rounded-lg text-ink-soft transition-colors hover:bg-elevated lg:hidden"
       >
         <Menu className="size-5" aria-hidden="true" />
       </button>
@@ -133,10 +134,12 @@ export function TopNav({
       </form>
 
       <div className="flex shrink-0 items-center gap-1.5">
+        <ThemeToggle />
+
         {/* Profile menu */}
         <Dropdown
           align="right"
-          triggerClassName="rounded-lg p-1 pr-1.5 hover:bg-neutral-100"
+          triggerClassName="rounded-lg p-1 pr-1.5 hover:bg-elevated"
           trigger={
             <>
               <Avatar name={user.name} size="sm" />

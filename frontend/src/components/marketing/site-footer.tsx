@@ -3,10 +3,22 @@ import { Logo } from "@/components/brand/logo";
 
 const footerSections = [
   {
+    title: "Product",
+    links: [
+      { label: "Features", href: "/features" },
+      { label: "How It Works", href: "/#how-it-works" },
+      { label: "Supported methods", href: "/#supported" },
+      { label: "Security", href: "/#security" },
+      { label: "Pricing", href: "/pricing" },
+      { label: "FAQ", href: "/#faq" },
+    ],
+  },
+  {
     title: "Company",
     links: [
       { label: "About", href: "/about" },
       { label: "Contact", href: "/contact" },
+      { label: "Service status", href: "/status" },
     ],
   },
   {
@@ -17,18 +29,11 @@ const footerSections = [
     ],
   },
   {
-    title: "Product",
-    links: [
-      { label: "Features", href: "/#features" },
-      { label: "How It Works", href: "/#how-it-works" },
-      { label: "Supported methods", href: "/#supported" },
-    ],
-  },
-  {
     title: "Dashboards",
     links: [
       { label: "Merchant portal", href: "/dashboard" },
       { label: "Admin portal", href: "/admin" },
+      { label: "Developer docs", href: "/docs" },
       { label: "Login", href: "/login" },
       { label: "Create account", href: "/register" },
     ],
@@ -37,7 +42,7 @@ const footerSections = [
 
 export function SiteFooter() {
   return (
-    <footer className="border-t border-neutral-200 bg-white">
+    <footer className="border-t border-line bg-surface">
       <div className="mx-auto max-w-6xl px-4 py-14 sm:px-6">
         <div className="grid gap-10 sm:grid-cols-2 lg:grid-cols-5">
           <div className="lg:col-span-1">
@@ -69,7 +74,7 @@ export function SiteFooter() {
           ))}
         </div>
 
-        <div className="mt-12 flex flex-col gap-3 border-t border-neutral-200 pt-6 sm:flex-row sm:items-center sm:justify-between">
+        <div className="mt-12 flex flex-col gap-3 border-t border-line pt-6 sm:flex-row sm:items-center sm:justify-between">
           <p className="text-[13px] text-ink-muted">
             © 2026 ZevaPay. All rights reserved.
           </p>
